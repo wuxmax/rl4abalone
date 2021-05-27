@@ -1,0 +1,9 @@
+# OS, IDE and Python stuff
+.DS_Store
+.idea
+.python-version
+__pycache__
+
+gym-abalone
+rainbow-is-all-you-need
+
