@@ -12,6 +12,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
+from tqdm import tqdm
+from IPython.display import clear_output
 
 from segment_tree import MinSegmentTree, SumSegmentTree
 
@@ -523,7 +525,6 @@ class DQNAgent:
         if not self.is_test:
             self.transition = [state, selected_action]
         
-        print(f"ACTION INDEX: {selected_action}")
         # return selected_action
         return selected_action // 61, selected_action % 61
 
@@ -604,7 +605,7 @@ class DQNAgent:
         scores = []
         score = 0
 
-        for frame_idx in range(1, num_frames + 1):
+        for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
             next_state, reward, done = self.step(action)
 
@@ -649,9 +650,9 @@ class DQNAgent:
         done = False
         score = 0
 
-        frames = []
+        # frames = []
         while not done:
-            frames.append(self.env.render(mode="rgb_array"))
+            # frames.append(self.env.render(mode="rgb_array"))
             action = self.select_action(state)
             next_state, reward, done = self.step(action)
 
@@ -661,7 +662,7 @@ class DQNAgent:
         print("score: ", score)
         self.env.close()
 
-        return frames
+        # return frames
 
     def _compute_dqn_loss(self, samples: Dict[str, np.ndarray], gamma: float) -> torch.Tensor:
         """Return categorical dqn loss."""
