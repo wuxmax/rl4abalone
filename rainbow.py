@@ -119,34 +119,34 @@ class ReplayBuffer:
 
 class PrioritizedReplayBuffer(ReplayBuffer):
     """Prioritized Replay buffer.
-    
+
     Attributes:
         max_priority (float): max priority
         tree_ptr (int): next index of tree
         alpha (float): alpha parameter for prioritized replay buffer
         sum_tree (SumSegmentTree): sum tree for prior
         min_tree (MinSegmentTree): min tree for min prior to get max weight
-        
+
     """
-    
+
     def __init__(
-        self, 
-        obs_dim: int, 
-        size: int, 
-        batch_size: int = 32, 
+        self,
+        obs_dim: int,
+        size: int,
+        batch_size: int = 32,
         alpha: float = 0.6,
-        n_step: int = 1, 
+        n_step: int = 1,
         gamma: float = 0.99,
     ):
         """Initialization."""
         assert alpha >= 0
-        
+
         super(PrioritizedReplayBuffer, self).__init__(
             obs_dim, size, batch_size, n_step, gamma
         )
         self.max_priority, self.tree_ptr = 1.0, 0
         self.alpha = alpha
-        
+
         # capacity must be positive and a power of 2.
         tree_capacity = 1
         while tree_capacity < self.max_size:
@@ -154,39 +154,39 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         self.sum_tree = SumSegmentTree(tree_capacity)
         self.min_tree = MinSegmentTree(tree_capacity)
-        
+
     def store(
-        self, 
-        obs: np.ndarray, 
-        act: int, 
-        rew: float, 
-        next_obs: np.ndarray, 
+        self,
+        obs: np.ndarray,
+        act: int,
+        rew: float,
+        next_obs: np.ndarray,
         done: bool,
     ) -> Tuple[np.ndarray, np.ndarray, float, np.ndarray, bool]:
         """Store experience and priority."""
         transition = super().store(obs, act, rew, next_obs, done)
-        
+
         if transition:
             self.sum_tree[self.tree_ptr] = self.max_priority ** self.alpha
             self.min_tree[self.tree_ptr] = self.max_priority ** self.alpha
             self.tree_ptr = (self.tree_ptr + 1) % self.max_size
-        
+
         return transition
 
     def sample_batch(self, beta: float = 0.4) -> Dict[str, np.ndarray]:
         """Sample a batch of experiences."""
         assert len(self) >= self.batch_size
         assert beta > 0
-        
+
         indices = self._sample_proportional()
-        
+
         obs = self.obs_buf[indices]
         next_obs = self.next_obs_buf[indices]
         acts = self.acts_buf[indices]
         rews = self.rews_buf[indices]
         done = self.done_buf[indices]
         weights = np.array([self._calculate_weight(i, beta) for i in indices])
-        
+
         return dict(
             obs=obs,
             next_obs=next_obs,
@@ -196,7 +196,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             weights=weights,
             indices=indices,
         )
-        
+
     def update_priorities(self, indices: List[int], priorities: np.ndarray):
         """Update priorities of sampled transitions."""
         assert len(indices) == len(priorities)
@@ -209,33 +209,33 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self.min_tree[idx] = priority ** self.alpha
 
             self.max_priority = max(self.max_priority, priority)
-            
+
     def _sample_proportional(self) -> List[int]:
         """Sample indices based on proportions."""
         indices = []
         p_total = self.sum_tree.sum(0, len(self) - 1)
         segment = p_total / self.batch_size
-        
+
         for i in range(self.batch_size):
             a = segment * i
             b = segment * (i + 1)
             upperbound = random.uniform(a, b)
             idx = self.sum_tree.retrieve(upperbound)
             indices.append(idx)
-            
+
         return indices
-    
+
     def _calculate_weight(self, idx: int, beta: float):
         """Calculate the weight of the experience at idx."""
         # get max weight
         p_min = self.min_tree.min() / self.sum_tree.sum()
         max_weight = (p_min * len(self)) ** (-beta)
-        
+
         # calculate weights
         p_sample = self.sum_tree[idx] / self.sum_tree.sum()
         weight = (p_sample * len(self)) ** (-beta)
         weight = weight / max_weight
-        
+
         return weight
 
 
@@ -447,7 +447,7 @@ class DQNAgent:
         """
 
         # obs_dim = env.observation_space.shape[0]
-        obs_dim = 11 * 11
+        obs_dim = 121 * 3
         action_dim = 61 * 61
         # action_dim = env.action_space.n
 
@@ -506,34 +506,35 @@ class DQNAgent:
         # mode: train / test
         self.is_test = False
 
+    def _cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
+        """Convert gym_abalone state into 121x3 representation"""
+        black = state.flatten().copy()
+        black[black < 1] = 0
+        white = state.flatten()
+        white[white > 0] = -1
+        white[white == 0] = 1
+        white[white < 1] = 0
+        current_player = np.zeros(121, dtype="int32") if turn % 2 == 0 else np.ones(121, dtype="int32")
+        return np.concatenate((black, white, current_player), axis=0)
+
     def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select an action from the input state."""
         # NoisyNet: no epsilon greedy action selection
-        
-        # dirty quickfix
-        state = state.flatten()
-        
-        # selected_action = self.dqn(
-        #     torch.FloatTensor(state).to(self.device)
-        # ).argmax()
-        #selected_action = selected_action.detach().cpu().numpy()
-        
+
         action_probs = self.dqn(torch.FloatTensor(state).to(self.device)).detach().cpu().numpy()
         action_probs_masked = action_probs * self.env.get_action_mask()
         selected_action = action_probs_masked.argmax()
-        
+
         if not self.is_test:
             self.transition = [state, selected_action]
-        
+
         # return selected_action
         return selected_action // 61, selected_action % 61
 
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, np.float64, bool]:
-        """Take an action and return the response of the env."""
+    def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool]:
+        """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, _ = self.env.step(action)
-
-        # dirty quick fix
-        next_state = next_state.flatten()
+        next_state = _cvst(next_state, turn+1)
 
         if not self.is_test:
             self.transition += [reward, next_state, done]
@@ -599,15 +600,17 @@ class DQNAgent:
         self.is_test = False
 
         # state = self.env.reset()
-        state = self.env.reset().flatten()
+        state = _cvst(self.env.reset(), 0)
         update_cnt = 0
         losses = []
         scores = []
         score = 0
+        turn = 0
 
         for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
-            next_state, reward, done = self.step(action)
+            next_state, reward, done = self.step(action, turn)
+            turn += 1
 
             state = next_state
             score += reward
@@ -621,7 +624,8 @@ class DQNAgent:
             # if episode ends
             if done:
                 # state = self.env.reset()
-                state = self.env.reset().flatten()
+                state = _cvst(self.env.reset(), 0)
+                turn = 0
                 scores.append(score)
                 score = 0
 
@@ -646,15 +650,17 @@ class DQNAgent:
         self.is_test = True
 
         # state = self.env.reset()
-        state = self.env.reset().flatten()
+        state = _cvst(self.env.reset(), 0)
         done = False
         score = 0
+        turn = 0
 
         # frames = []
         while not done:
             # frames.append(self.env.render(mode="rgb_array"))
             action = self.select_action(state)
-            next_state, reward, done = self.step(action)
+            next_state, reward, done = self.step(action, turn)
+            turn += 1
 
             state = next_state
             score += reward
