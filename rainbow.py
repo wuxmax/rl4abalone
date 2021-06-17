@@ -748,11 +748,13 @@ class DQNAgent:
         clear_output(True)
         plt.figure(figsize=(20, 5))
         plt.subplot(131)
-        plt.title('frame %s. mean score: %s' % (frame_idx, np.mean(scores)))
+        plt.title('frame %s. mean score (last 10 runs): %s' % (frame_idx, np.mean(scores[-10:])))
         plt.plot(scores)
         plt.subplot(132)
         plt.title('loss')
         plt.plot(losses)
+        axes = plt.gca()
+        axes.set_xlim([0.2,1.2])
         plt.show()
 
     def reset_torch_device(self):
