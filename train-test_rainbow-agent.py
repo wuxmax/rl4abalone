@@ -8,9 +8,9 @@ import numpy as np
 
 from rainbow import DQNAgent
 
-AGENT_FILE_PATH: str = "rainbow-agent.pkl"
-LOAD_FROM_FILE: bool = False
-SAVE_TO_FILE: bool = True
+AGENT_FILE_PATH: str = "rainbow-agent.pth"
+LOAD_FROM_FILE: bool = True
+SAVE_TO_FILE: bool = False
 
 
 def seed_torch(seed):
@@ -38,9 +38,12 @@ if not LOAD_FROM_FILE:
     agent.train(num_frames)
 
     if SAVE_TO_FILE:
-        with open("rainbow-agent.pkl", "wb") as f:
+        with open(AGENT_FILE_PATH, "wb") as f:
             pickle.dump(agent, f)   
 else:
-    pickle.load()
+    with open(AGENT_FILE_PATH, "rb") as f:
+        agent = torch.load(f, map_location='cpu')
+        agent.reset_torch_device()
+
 
 agent.test()

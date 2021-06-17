@@ -4,6 +4,9 @@
 .python-version
 __pycache__
 
+# moudules/repos
 gym-abalone
 rainbow-is-all-you-need
 
+# agent files
+*.pth

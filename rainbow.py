@@ -426,7 +426,7 @@ class DQNAgent:
             v_max: float = 200.0,
             atom_size: int = 51,
             # N-step Learning
-            n_step: int = 3,
+            n_step: int = 3
     ):
         """Initialization.
 
@@ -446,9 +446,9 @@ class DQNAgent:
             n_step (int): step number to calculate n-step td error
         """
 
-        # obs_dim = env.observation_space.shape[0]
         obs_dim = 121 * 3
         action_dim = 61 * 61
+        # obs_dim = env.observation_space.shape[0]
         # action_dim = env.action_space.n
 
         self.env = env
@@ -531,9 +531,9 @@ class DQNAgent:
         # return selected_action
         return selected_action // 61, selected_action % 61
 
-    def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool]:
+    def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
-        next_state, reward, done, _ = self.env.step(action)
+        next_state, reward, done, info = self.env.step(action)
         next_state = _cvst(next_state, turn+1)
 
         if not self.is_test:
@@ -550,7 +550,7 @@ class DQNAgent:
             if one_step_transition:
                 self.memory.store(*one_step_transition)
 
-        return next_state, reward, done
+        return next_state, reward, done, info
 
     def update_model(self) -> torch.Tensor:
         """Update the model by gradient descent."""
@@ -609,9 +609,10 @@ class DQNAgent:
 
         for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
-            next_state, reward, done = self.step(action, turn)
-            turn += 1
 
+            next_state, reward, done, _ = self.step(action, turn)
+            turn += 1
+    
             state = next_state
             score += reward
 
@@ -659,8 +660,11 @@ class DQNAgent:
         while not done:
             # frames.append(self.env.render(mode="rgb_array"))
             action = self.select_action(state)
-            next_state, reward, done = self.step(action, turn)
+            next_state, reward, done, info = self.step(action, turn)
             turn += 1
+
+            print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
+            self.env.render(fps=0.5)
 
             state = next_state
             score += reward
@@ -737,3 +741,12 @@ class DQNAgent:
         plt.title('loss')
         plt.plot(losses)
         plt.show()
+
+    def reset_torch_device(self):
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+        print(self.device)
+
+        self.dqn.to(self.device)
+        self.dqn_target.to(self.device)
