@@ -755,6 +755,8 @@ class DQNAgent:
         plt.plot(losses)
         axes = plt.gca()
         axes.set_xlim([max(0, len(losses) - 300), len(losses)])
+        if len(losses) > 100:
+            axes.set_ylim([0.2, 1.2])
         plt.show()
 
     def reset_torch_device(self):
