@@ -534,7 +534,7 @@ class DQNAgent:
     def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = _cvst(next_state, turn+1)
+        next_state = self._cvst(next_state, turn+1)
 
         if not self.is_test:
             self.transition += [reward, next_state, done]
@@ -600,7 +600,7 @@ class DQNAgent:
         self.is_test = False
 
         # state = self.env.reset()
-        state = _cvst(self.env.reset(), 0)
+        state = self._cvst(self.env.reset(), 0)
         update_cnt = 0
         losses = []
         scores = []
@@ -625,7 +625,7 @@ class DQNAgent:
             # if episode ends
             if done:
                 # state = self.env.reset()
-                state = _cvst(self.env.reset(), 0)
+                state = self._cvst(self.env.reset(), 0)
                 turn = 0
                 scores.append(score)
                 score = 0
@@ -651,7 +651,7 @@ class DQNAgent:
         self.is_test = True
 
         # state = self.env.reset()
-        state = _cvst(self.env.reset(), 0)
+        state = self._cvst(self.env.reset(), 0)
         done = False
         score = 0
         turn = 0
