@@ -613,9 +613,9 @@ class DQNAgent:
             next_state, reward, done, info = self.step(action, turn)
 
             if turn % 2 == 0:
-                score_black += reward
-            else:
                 score_white += reward
+            else:
+                score_black += reward
 
             if str(info['move_type']) == "ejected":
                 print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
@@ -672,9 +672,9 @@ class DQNAgent:
             next_state, reward, done, info = self.step(action, turn)
 
             if turn % 2 == 0:
-                score_black += reward
-            else:
                 score_white += reward
+            else:
+                score_black += reward
 
             turn += 1
             state = next_state
@@ -754,7 +754,7 @@ class DQNAgent:
         plt.title('loss')
         plt.plot(losses)
         axes = plt.gca()
-        axes.set_xlim([max(0, len(losses) - 1000), len(losses)])
+        axes.set_xlim([max(0, len(losses) - 300), len(losses)])
         plt.show()
 
     def reset_torch_device(self):
