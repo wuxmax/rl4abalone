@@ -599,7 +599,7 @@ class DQNAgent:
         """Train the agent."""
         self.is_test = False
 
-        state = self._cvst(self.env.reset(), 0)
+        state = self._cvst(self.env.reset(random_player=False), 0)
         update_cnt = 0
         losses = []
         scores = []
@@ -612,14 +612,15 @@ class DQNAgent:
 
             next_state, reward, done, info = self.step(action, turn)
 
-            if str(info['move_type']) not in ['inline_move', 'sidestep_move']:
-                print(f"\nINTERESTING MOVE DURING TRAINING:")
-                print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
-
             if turn % 2 == 0:
                 score_black += reward
             else:
                 score_white += reward
+
+            if str(info['move_type']) == "ejected":
+                print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
+            elif str(info['move_type']) == "winner":
+                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
 
             turn += 1
             state = next_state
@@ -632,7 +633,7 @@ class DQNAgent:
 
             # if episode ends
             if done:
-                state = self._cvst(self.env.reset(), 0)
+                state = self._cvst(self.env.reset(random_player=False), 0)
                 turn = 0
                 scores.append(max(score_black, score_white))
                 score_black = 0
@@ -658,7 +659,7 @@ class DQNAgent:
         """Test the agent."""
         self.is_test = True
 
-        state = self._cvst(self.env.reset(), 0)
+        state = self._cvst(self.env.reset(random_player=False), 0)
         done = False
         score_black = 0
         score_white = 0
