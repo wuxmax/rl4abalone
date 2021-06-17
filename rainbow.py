@@ -514,7 +514,7 @@ class DQNAgent:
         white[white > 0] = -1
         white[white == 0] = 1
         white[white < 1] = 0
-        current_player = np.zeros(121, dtype="int32") if turn % 2 == 0 else np.ones(121, dtype="int32")
+        current_player = np.zeros(121, dtype="int64") if turn % 2 == 0 else np.ones(121, dtype="int64")
         return np.concatenate((black, white, current_player), axis=0)
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
@@ -610,7 +610,11 @@ class DQNAgent:
         for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
 
-            next_state, reward, done, _ = self.step(action, turn)
+            next_state, reward, done, info = self.step(action, turn)
+
+            if str(info['move_type']) not in ['inline_move', 'sideline_move']:
+                print(f"INTERESTING MOVE DURING TRAINING:")
+                print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
 
             if turn % 2 == 0:
                 score_black += reward
@@ -743,7 +747,7 @@ class DQNAgent:
         clear_output(True)
         plt.figure(figsize=(20, 5))
         plt.subplot(131)
-        plt.title('frame %s. score: %s' % (frame_idx, np.mean(scores[-10:])))
+        plt.title('frame %s. mean score: %s' % (frame_idx, np.mean(scores[])))
         plt.plot(scores)
         plt.subplot(132)
         plt.title('loss')
