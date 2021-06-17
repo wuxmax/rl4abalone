@@ -599,22 +599,26 @@ class DQNAgent:
         """Train the agent."""
         self.is_test = False
 
-        # state = self.env.reset()
         state = self._cvst(self.env.reset(), 0)
         update_cnt = 0
         losses = []
         scores = []
-        score = 0
+        score_black = 0
+        score_white = 0
         turn = 0
 
         for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
 
             next_state, reward, done, _ = self.step(action, turn)
+
+            if turn % 2 == 0:
+                score_black += reward
+            else:
+                score_white += reward
+
             turn += 1
-    
             state = next_state
-            score += reward
 
             # NoisyNet: removed decrease of epsilon
 
@@ -624,11 +628,11 @@ class DQNAgent:
 
             # if episode ends
             if done:
-                # state = self.env.reset()
                 state = self._cvst(self.env.reset(), 0)
                 turn = 0
-                scores.append(score)
-                score = 0
+                scores.append(max(score_black, score_white))
+                score_black = 0
+                score_white = 0
 
             # if training is ready
             if len(self.memory) >= self.batch_size:
@@ -646,14 +650,14 @@ class DQNAgent:
 
         self.env.close()
 
-    def test(self) -> List[np.ndarray]:
+    def test(self):# -> List[np.ndarray]:
         """Test the agent."""
         self.is_test = True
 
-        # state = self.env.reset()
         state = self._cvst(self.env.reset(), 0)
         done = False
-        score = 0
+        score_black = 0
+        score_white = 0
         turn = 0
 
         # frames = []
@@ -661,15 +665,19 @@ class DQNAgent:
             # frames.append(self.env.render(mode="rgb_array"))
             action = self.select_action(state)
             next_state, reward, done, info = self.step(action, turn)
+
+            if turn % 2 == 0:
+                score_black += reward
+            else:
+                score_white += reward
+
             turn += 1
+            state = next_state
 
             print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
             self.env.render(fps=0.5)
 
-            state = next_state
-            score += reward
-
-        print("score: ", score)
+        print(f"Testing completed. Score: {max(score_black, score_white)}")
         self.env.close()
 
         # return frames
