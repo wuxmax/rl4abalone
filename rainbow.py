@@ -612,7 +612,7 @@ class DQNAgent:
 
             next_state, reward, done, info = self.step(action, turn)
 
-            if str(info['move_type']) not in ['inline_move', 'sideline_move']:
+            if str(info['move_type']) not in ['inline_move', 'sidestep_move']:
                 print(f"INTERESTING MOVE DURING TRAINING:")
                 print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
 
