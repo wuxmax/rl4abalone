@@ -747,7 +747,7 @@ class DQNAgent:
         clear_output(True)
         plt.figure(figsize=(20, 5))
         plt.subplot(131)
-        plt.title('frame %s. mean score: %s' % (frame_idx, np.mean(scores[])))
+        plt.title('frame %s. mean score: %s' % (frame_idx, np.mean(scores)))
         plt.plot(scores)
         plt.subplot(132)
         plt.title('loss')
