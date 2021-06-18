@@ -33,7 +33,7 @@ memory_size = 1000
 batch_size = 128
 target_update = 100
 
-if not LOAD_FROM_FILE:
+if LOAD_FROM_FILE:
     with open(AGENT_FILE_PATH, "rb") as f:
         agent = torch.load(f, map_location=torch.device('cpu'))
         agent.reset_torch_device()
