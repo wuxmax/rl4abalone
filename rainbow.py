@@ -335,7 +335,12 @@ class Network(nn.Module):
         """Initialization."""
         super(Network, self).__init__()
 
-        self.support = support
+        # set device
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+
+        self.support = support.to(self.device)
         self.out_dim = out_dim
         self.atom_size = atom_size
 
@@ -357,7 +362,7 @@ class Network(nn.Module):
         """Forward method implementation."""
         print(f"x device:{x.device}, self.support device: {self.support.device} ")
         dist = self.dist(x)
-        q = torch.sum(dist * self.support, dim=2)
+        q = torch.sum(dist * self.support.to(self.device), dim=2)
 
         return q
 
@@ -386,8 +391,9 @@ class Network(nn.Module):
         self.value_layer.reset_noise()
 
     def to(self, device):
-        super(Network, self).to(device)
+        self.device = device
         self.support.to(device)
+        return super(Network, self).to(device)
 
 
 class DQNAgent:
