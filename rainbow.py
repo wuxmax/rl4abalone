@@ -764,5 +764,7 @@ class DQNAgent:
         print(self.device)
 
         self.dqn.to(self.device)
+        self.dqn.support.to(self.device)
         self.dqn_target.to(self.device)
+        self.dqn_target.support.to(self.device)
         self.support.to(self.device)
