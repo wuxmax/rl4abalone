@@ -355,6 +355,7 @@ class Network(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
+        print(f"x device:{x.device}, self.support device: {self.support.device} ")
         dist = self.dist(x)
         q = torch.sum(dist * self.support, dim=2)
 
