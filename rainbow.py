@@ -360,7 +360,6 @@ class Network(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
-        print(f"x device:{x.device}, self.support device: {self.support.device} ")
         dist = self.dist(x)
         q = torch.sum(dist * self.support.to(self.device), dim=2)
 
@@ -714,7 +713,7 @@ class DQNAgent:
             next_dist = self.dqn_target.dist(next_state)
             next_dist = next_dist[range(self.batch_size), next_action]
 
-            t_z = reward + (1 - done) * gamma * self.support
+            t_z = reward + (1 - done) * gamma * self.support.to(self.device)
             t_z = t_z.clamp(min=self.v_min, max=self.v_max)
             b = (t_z - self.v_min) / delta_z
             l = b.floor().long()
