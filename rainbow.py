@@ -590,6 +590,7 @@ class DQNAgent:
         self.optimizer.zero_grad()
         loss.backward()
         clip_grad_norm_(self.dqn.parameters(), 10.0)
+        print(f"self.optimizer params device: {set([[z.device for z in y['params']] for y in self.optimizer.param_groups][0])}")
         self.optimizer.step()
 
         # PER: update priorities
