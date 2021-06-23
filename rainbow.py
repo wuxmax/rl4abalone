@@ -590,7 +590,6 @@ class DQNAgent:
         self.optimizer.zero_grad()
         loss.backward()
         clip_grad_norm_(self.dqn.parameters(), 10.0)
-        print(f"self.optimizer params device: {list(set([[z.device for z in y['params']] for y in self.optimizer.param_groups][0]))}")
         self.optimizer.step()
 
         # PER: update priorities
@@ -772,7 +771,7 @@ class DQNAgent:
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        print(f"Resetting torch devices to {self.device}")
+        print(f"Resetting torch devices to {self.device}...")
         self.support.to(self.device)
         self.dqn.to(self.device)
         self.dqn_target.to(self.device)
@@ -782,3 +781,4 @@ class DQNAgent:
                 for k, v in state.items():
                     if isinstance(v, torch.Tensor):
                         state[k] = v.cuda()
+        print(f"Done!")
