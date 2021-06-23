@@ -385,6 +385,10 @@ class Network(nn.Module):
         self.value_hidden_layer.reset_noise()
         self.value_layer.reset_noise()
 
+    def to(self, device):
+        super(Network, self).to(device)
+        self.support.to(device)
+
 
 class DQNAgent:
     """DQN Agent interacting with environment.
@@ -762,10 +766,7 @@ class DQNAgent:
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        print(self.device)
-
-        self.dqn.to(self.device)
-        self.dqn.support.to(self.device)
-        self.dqn_target.to(self.device)
-        self.dqn_target.support.to(self.device)
+        print(f"Resetting torch devices to {self.device}")
         self.support.to(self.device)
+        self.dqn.to(self.device)
+        self.dqn_target.to(self.device)
