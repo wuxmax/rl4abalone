@@ -4,6 +4,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from .config import RainbowConfig
+
 
 class NoisyLinear(nn.Module):
     """Noisy linear module for NoisyNet.
@@ -86,16 +88,24 @@ class NoisyLinear(nn.Module):
         return x.sign().mul(x.abs().sqrt())
 
 
-class Network(nn.Module):
+class DQN(nn.Module):
     def __init__(
             self,
             in_dim: int,
             out_dim: int,
+            hidden_dim: int,
             atom_size: int,
-            support: torch.Tensor
+            support: torch.Tensor,
+            feature_conf: RainbowConfig
     ):
         """Initialization."""
-        super(Network, self).__init__()
+        super(DQN, self).__init__()
+
+        self.feature_conf = feature_conf
+        if self.feature_conf.noisy_net:
+            deep_linear_class = NoisyLinear
+        else:
+            deep_linear_class = nn.Linear
 
         self.support = support
         self.out_dim = out_dim
@@ -103,39 +113,34 @@ class Network(nn.Module):
 
         # set common feature layer
         self.feature_layer = nn.Sequential(
-            nn.Linear(in_dim, 128),
+            nn.Linear(in_dim, hidden_dim),
             nn.ReLU(),
         )
 
         # set advantage layer
-        self.advantage_hidden_layer = NoisyLinear(128, 128)
-        self.advantage_layer = NoisyLinear(128, out_dim * atom_size)
+        self.advantage_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
+        self.advantage_layer = deep_linear_class(hidden_dim, out_dim * atom_size)
 
         # set value layer
-        self.value_hidden_layer = NoisyLinear(128, 128)
-        self.value_layer = NoisyLinear(128, atom_size)
+        self.value_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
+        self.value_layer = deep_linear_class(hidden_dim, atom_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
-        dist = self.dist(x)
-        q = torch.sum(dist * self.support, dim=2)
+        feature = self.feature_layer(x)
+
+        if self.feature_conf.distributional_net:
+            dist = self.dist(feature)
+            q = torch.sum(dist * self.support, dim=2)
+        else:
+            value = self.value_layer(feature)
+            advantage = self.advantage_layer(feature)
+            q = value + advantage - advantage.mean(dim=-1, keepdim=True)
 
         return q
 
-    # def forward(self, x: torch.Tensor) -> torch.Tensor:
-    #     """Forward method implementation."""
-    #     feature = self.feature_layer(x)
-    #
-    #     value = self.value_layer(feature)
-    #     advantage = self.advantage_layer(feature)
-    #
-    #     q = value + advantage - advantage.mean(dim=-1, keepdim=True)
-    #
-    #     return q
-
-    def dist(self, x: torch.Tensor) -> torch.Tensor:
+    def dist(self, feature: torch.Tensor) -> torch.Tensor:
         """Get distribution for atoms."""
-        feature = self.feature_layer(x)
         adv_hid = F.relu(self.advantage_hidden_layer(feature))
         val_hid = F.relu(self.value_hidden_layer(feature))
 

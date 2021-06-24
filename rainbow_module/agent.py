@@ -9,8 +9,10 @@ from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+from .config import RainbowConfig
 from .buffer import ReplayBuffer, PrioritizedReplayBuffer
-from .network import Network
+from .network import DQN
+
 
 IN_COLAB = "google.colab" in sys.modules
 if IN_COLAB:
@@ -47,6 +49,7 @@ class RainbowAgent:
             batch_size: int,
             target_update: int,
             gamma: float = 0.99,
+            hidden_dim: int = 128,
             # PER parameters
             alpha: float = 0.2,
             beta: float = 0.6,
@@ -56,7 +59,9 @@ class RainbowAgent:
             v_max: float = 200.0,
             atom_size: int = 51,
             # N-step Learning
-            n_step: int = 3
+            n_step: int = 3,
+            # Toggle rainbow features
+            feature_conf: RainbowConfig = RainbowConfig()
     ):
         """Initialization.
 
@@ -75,6 +80,8 @@ class RainbowAgent:
             atom_size (int): the unit number of support
             n_step (int): step number to calculate n-step td error
         """
+
+        self.feature_conf = feature_conf
 
         obs_dim = 121 * 3
         action_dim = 61 * 61
@@ -118,12 +125,12 @@ class RainbowAgent:
         ).to(self.device)
 
         # networks: dqn, dqn_target
-        self.dqn = Network(
-            obs_dim, action_dim, self.atom_size, self.support
-        ).to(self.device)
-        self.dqn_target = Network(
-            obs_dim, action_dim, self.atom_size, self.support
-        ).to(self.device)
+        self.dqn = DQN(
+            obs_dim, action_dim, hidden_dim, self.atom_size, self.support,
+            self.feature_conf).to(self.device)
+        self.dqn_target = DQN(
+            obs_dim, action_dim, hidden_dim, self.atom_size, self.support,
+            self.feature_conf).to(self.device)
         self.dqn_target.load_state_dict(self.dqn.state_dict())
         self.dqn_target.eval()
 
@@ -136,7 +143,7 @@ class RainbowAgent:
         # mode: train / test
         self.is_test = False
 
-    def _cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
+    def cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
         """Convert gym_abalone state into 121x3 representation"""
         black = state.flatten().copy()
         black[black < 1] = 0
@@ -147,11 +154,14 @@ class RainbowAgent:
         current_player = np.zeros(121, dtype="int64") if turn % 2 == 0 else np.ones(121, dtype="int64")
         return np.concatenate((black, white, current_player), axis=0)
 
-    def select_action(self, state: np.ndarray) -> np.ndarray:
+    def select_action(self, state: np.ndarray) -> Tuple[int, int]:
         """Select an action from the input state."""
         # NoisyNet: no epsilon greedy action selection
 
         action_probs = self.dqn(torch.FloatTensor(state).to(self.device)).detach().cpu().numpy()
+        # expects an 'get_action_mask' function as provided by gym_abalone
+        # see:  https://github.com/towzeur/gym-abalone/blob/048e443101c29bbc20ff6646beeca92c5776b1e7/
+        #       gym_abalone/envs/abalone_env.py#L149
         action_probs_masked = action_probs * self.env.get_action_mask()
         selected_action = action_probs_masked.argmax()
 
@@ -159,26 +169,16 @@ class RainbowAgent:
             self.transition = [state, selected_action]
 
         # return selected_action
+        # actions are converted according to this: https://github.com/towzeur/gym-abalone#actions
         return selected_action // 61, selected_action % 61
 
     def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = self._cvst(next_state, turn+1)
+        next_state = self.cvst(next_state, turn+1)
 
         if not self.is_test:
-            self.transition += [reward, next_state, done]
-
-            # N-step transition
-            if self.use_n_step:
-                one_step_transition = self.memory_n.store(*self.transition)
-            # 1-step transition
-            else:
-                one_step_transition = self.transition
-
-            # add a single step transition
-            if one_step_transition:
-                self.memory.store(*one_step_transition)
+            self.add_custom_transition(self.transition + [reward, next_state, done])
 
         return next_state, reward, done, info
 
@@ -220,8 +220,9 @@ class RainbowAgent:
         self.memory.update_priorities(indices, new_priorities)
 
         # NoisyNet: reset noise
-        self.dqn.reset_noise()
-        self.dqn_target.reset_noise()
+        if self.feature_conf.noisy_net:
+            self.dqn.reset_noise()
+            self.dqn_target.reset_noise()
 
         return loss.item()
 
@@ -229,13 +230,14 @@ class RainbowAgent:
         """Train the agent."""
         self.is_test = False
 
-        state = self._cvst(self.env.reset(random_player=False), 0)
+        state = self.cvst(self.env.reset(random_player=False), 0)
         update_cnt = 0
         losses = []
         scores = []
         score_black = 0
         score_white = 0
         turn = 0
+        last_opposing_player_transition = list()
 
         for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
@@ -243,19 +245,26 @@ class RainbowAgent:
             next_state, reward, done, info = self.step(action, turn)
 
             if turn % 2 == 0:
-                score_black += reward
-            else:
                 score_white += reward
+            else:
+                score_black += reward
 
             if str(info['move_type']) == "ejected":
                 print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
             elif str(info['move_type']) == "winner":
-                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
+                # score update depending on defeat
+                score_black -= 12 if info['player_name'] == 'white' else 0
+                score_white -= 12 if info['player_name'] == 'black' else 0
+
+                # saving the negative reward from defeat into replay buffer
+                self.add_custom_transition(last_opposing_player_transition, reward=-1)
+
+                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!\n"
+                      f"The looser scored with {score_black if info['player_name'] == 'white' else score_white}!")
 
             turn += 1
+            last_opposing_player_transition = self.transition
             state = next_state
-
-            # NoisyNet: removed decrease of epsilon
 
             # PER: increase beta
             fraction = min(frame_idx / num_frames, 1.0)
@@ -263,7 +272,7 @@ class RainbowAgent:
 
             # if episode ends
             if done:
-                state = self._cvst(self.env.reset(random_player=False), 0)
+                state = self.cvst(self.env.reset(random_player=False), 0)
                 turn = 0
                 scores.append(max(score_black, score_white))
                 score_black = 0
@@ -285,38 +294,6 @@ class RainbowAgent:
 
         self.env.close()
 
-    def test(self):# -> List[np.ndarray]:
-        """Test the agent."""
-        self.is_test = True
-
-        state = self._cvst(self.env.reset(random_player=False), 0)
-        done = False
-        score_black = 0
-        score_white = 0
-        turn = 0
-
-        # frames = []
-        while not done:
-            # frames.append(self.env.render(mode="rgb_array"))
-            action = self.select_action(state)
-            next_state, reward, done, info = self.step(action, turn)
-
-            if turn % 2 == 0:
-                score_black += reward
-            else:
-                score_white += reward
-
-            turn += 1
-            state = next_state
-
-            print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
-            if not IN_COLAB:
-                self.env.render(fps=0.5)
-
-        print(f"Testing completed. Score: {max(score_black, score_white)}")
-        self.env.close()
-
-        # return frames
 
     def _compute_dqn_loss(self, samples: Dict[str, np.ndarray], gamma: float) -> torch.Tensor:
         """Return categorical dqn loss."""
@@ -336,7 +313,7 @@ class RainbowAgent:
             next_dist = self.dqn_target.dist(next_state)
             next_dist = next_dist[range(self.batch_size), next_action]
 
-            t_z = reward + (1 - done) * gamma * self.support
+            t_z = reward + (1 - done) * gamma * self.support.to(self.device)
             t_z = t_z.clamp(min=self.v_min, max=self.v_max)
             b = (t_z - self.v_min) / delta_z
             l = b.floor().long()
@@ -379,18 +356,47 @@ class RainbowAgent:
         clear_output(True)
         plt.figure(figsize=(20, 5))
         plt.subplot(131)
-        plt.title('frame %s. mean score: %s' % (frame_idx, np.mean(scores)))
+        plt.title('frame %s. mean score (last 10 runs): %s' % (frame_idx, np.mean(scores[-100:])))
         plt.plot(scores)
         plt.subplot(132)
         plt.title('loss')
         plt.plot(losses)
+        axes = plt.gca()
+        axes.set_xlim([max(0, len(losses) - 300), len(losses)])
+        if len(losses) > 100:
+            axes.set_ylim([-0.1, 1])
         plt.show()
 
     def reset_torch_device(self):
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        print(self.device)
-
+        print(f"Resetting torch devices to {self.device}...")
+        self.support.to(self.device)
         self.dqn.to(self.device)
         self.dqn_target.to(self.device)
+
+        if torch.cuda.is_available():
+            for state in self.optimizer.state.values():
+                for k, v in state.items():
+                    if isinstance(v, torch.Tensor):
+                        state[k] = v.cuda()
+        print(f"Done!")
+
+    def add_custom_transition(self, transition, reward=None):
+        if not self.is_test:
+            if reward:
+                self.transition = transition[:2] + [reward] + transition[3:]
+            else:
+                self.transition = transition
+
+            # N-step transition
+            if self.use_n_step:
+                one_step_transition = self.memory_n.store(*self.transition)
+            # 1-step transition
+            else:
+                one_step_transition = self.transition
+
+            # add a single step transition
+            if one_step_transition:
+                self.memory.store(*one_step_transition)
