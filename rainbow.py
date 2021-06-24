@@ -618,28 +618,24 @@ class DQNAgent:
             if str(info['move_type']) == "ejected":
                 print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
             elif str(info['move_type']) == "winner":
+                self.add_custom_transition(last_opposing_player_transition, reward=-12)
                 print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
 
             turn += 1
+            last_opposing_player_transition = self.transition
+            state = next_state
+
+            # PER: increase beta
+            fraction = min(frame_idx / num_frames, 1.0)
+            self.beta = self.beta + fraction * (1.0 - self.beta)
 
             # if episode ends
             if done:
-                if turn < self.env.max_turns+22:
-                    self.add_custom_transition(last_opposing_player_transition, reward=-12)
                 state = self._cvst(self.env.reset(random_player=False), 0)
                 turn = 0
                 scores.append(max(score_black, score_white))
                 score_black = 0
                 score_white = 0
-
-            last_opposing_player_transition = self.transition
-            state = next_state
-
-            # NoisyNet: removed decrease of epsilon
-
-            # PER: increase beta
-            fraction = min(frame_idx / num_frames, 1.0)
-            self.beta = self.beta + fraction * (1.0 - self.beta)
 
             # if training is ready
             if len(self.memory) >= self.batch_size:
