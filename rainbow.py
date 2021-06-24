@@ -624,7 +624,7 @@ class DQNAgent:
 
             # if episode ends
             if done:
-                if turn < self.env.max_turns-2:
+                if turn < self.env.max_turns+22:
                     self.add_custom_transition(last_opposing_player_transition, reward=-12)
                 state = self._cvst(self.env.reset(random_player=False), 0)
                 turn = 0
