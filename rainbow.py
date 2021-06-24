@@ -620,10 +620,11 @@ class DQNAgent:
             elif str(info['move_type']) == "winner":
                 print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
 
+            turn += 1
+
             # if episode ends
             if done:
-                if turn < self.env.max_turns:
-                    print(f"ITS TURN {turn} AND I AM SAVING BBY")
+                if turn < self.env.max_turns-2:
                     self.add_custom_transition(last_opposing_player_transition, reward=-12)
                 state = self._cvst(self.env.reset(random_player=False), 0)
                 turn = 0
@@ -631,8 +632,7 @@ class DQNAgent:
                 score_black = 0
                 score_white = 0
 
-            turn += 1
-            last_opposing_player_transition = [state, action, reward, next_state, done]
+            last_opposing_player_transition = self.transition
             state = next_state
 
             # NoisyNet: removed decrease of epsilon
