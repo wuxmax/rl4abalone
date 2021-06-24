@@ -335,7 +335,12 @@ class Network(nn.Module):
         """Initialization."""
         super(Network, self).__init__()
 
-        self.support = support
+        # set device
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+
+        self.support = support.to(self.device)
         self.out_dim = out_dim
         self.atom_size = atom_size
 
@@ -356,7 +361,7 @@ class Network(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
         dist = self.dist(x)
-        q = torch.sum(dist * self.support, dim=2)
+        q = torch.sum(dist * self.support.to(self.device), dim=2)
 
         return q
 
@@ -383,6 +388,11 @@ class Network(nn.Module):
         self.advantage_layer.reset_noise()
         self.value_hidden_layer.reset_noise()
         self.value_layer.reset_noise()
+
+    def to(self, device):
+        self.device = device
+        self.support.to(device)
+        return super(Network, self).to(device)
 
 
 class DQNAgent:
@@ -504,7 +514,7 @@ class DQNAgent:
         # mode: train / test
         self.is_test = False
 
-    def _cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
+    def cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
         """Convert gym_abalone state into 121x3 representation"""
         black = state.flatten().copy()
         black[black < 1] = 0
@@ -532,21 +542,10 @@ class DQNAgent:
     def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = self._cvst(next_state, turn+1)
+        next_state = self.cvst(next_state, turn+1)
 
         if not self.is_test:
-            self.transition += [reward, next_state, done]
-
-            # N-step transition
-            if self.use_n_step:
-                one_step_transition = self.memory_n.store(*self.transition)
-            # 1-step transition
-            else:
-                one_step_transition = self.transition
-
-            # add a single step transition
-            if one_step_transition:
-                self.memory.store(*one_step_transition)
+            self.add_custom_transition(self.transition + [reward, next_state, done])
 
         return next_state, reward, done, info
 
@@ -597,13 +596,14 @@ class DQNAgent:
         """Train the agent."""
         self.is_test = False
 
-        state = self._cvst(self.env.reset(random_player=False), 0)
+        state = self.cvst(self.env.reset(random_player=False), 0)
         update_cnt = 0
         losses = []
         scores = []
         score_black = 0
         score_white = 0
         turn = 0
+        last_opposing_player_transition = list()
 
         for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
@@ -618,12 +618,19 @@ class DQNAgent:
             if str(info['move_type']) == "ejected":
                 print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
             elif str(info['move_type']) == "winner":
-                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
+                # score update depending on defeat
+                score_black -= 12 if info['player_name'] == 'white' else 0
+                score_white -= 12 if info['player_name'] == 'black' else 0
+
+                # saving the negative reward from defeat into replay buffer
+                self.add_custom_transition(last_opposing_player_transition, reward=-1)
+
+                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!\n"
+                      f"The looser scored with {score_black if info['player_name'] == 'white' else score_white}!")
 
             turn += 1
+            last_opposing_player_transition = self.transition
             state = next_state
-
-            # NoisyNet: removed decrease of epsilon
 
             # PER: increase beta
             fraction = min(frame_idx / num_frames, 1.0)
@@ -631,7 +638,7 @@ class DQNAgent:
 
             # if episode ends
             if done:
-                state = self._cvst(self.env.reset(random_player=False), 0)
+                state = self.cvst(self.env.reset(random_player=False), 0)
                 turn = 0
                 scores.append(max(score_black, score_white))
                 score_black = 0
@@ -653,37 +660,6 @@ class DQNAgent:
 
         self.env.close()
 
-    def test(self):# -> List[np.ndarray]:
-        """Test the agent."""
-        self.is_test = True
-
-        state = self._cvst(self.env.reset(random_player=False), 0)
-        done = False
-        score_black = 0
-        score_white = 0
-        turn = 0
-
-        # frames = []
-        while not done:
-            # frames.append(self.env.render(mode="rgb_array"))
-            action = self.select_action(state)
-            next_state, reward, done, info = self.step(action, turn)
-
-            if turn % 2 == 0:
-                score_white += reward
-            else:
-                score_black += reward
-
-            turn += 1
-            state = next_state
-
-            print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
-            self.env.render(fps=0.5)
-
-        print(f"Testing completed. Score: {max(score_black, score_white)}")
-        self.env.close()
-
-        # return frames
 
     def _compute_dqn_loss(self, samples: Dict[str, np.ndarray], gamma: float) -> torch.Tensor:
         """Return categorical dqn loss."""
@@ -703,7 +679,7 @@ class DQNAgent:
             next_dist = self.dqn_target.dist(next_state)
             next_dist = next_dist[range(self.batch_size), next_action]
 
-            t_z = reward + (1 - done) * gamma * self.support
+            t_z = reward + (1 - done) * gamma * self.support.to(self.device)
             t_z = t_z.clamp(min=self.v_min, max=self.v_max)
             b = (t_z - self.v_min) / delta_z
             l = b.floor().long()
@@ -761,7 +737,32 @@ class DQNAgent:
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        print(self.device)
-
+        print(f"Resetting torch devices to {self.device}...")
+        self.support.to(self.device)
         self.dqn.to(self.device)
         self.dqn_target.to(self.device)
+
+        if torch.cuda.is_available():
+            for state in self.optimizer.state.values():
+                for k, v in state.items():
+                    if isinstance(v, torch.Tensor):
+                        state[k] = v.cuda()
+        print(f"Done!")
+
+    def add_custom_transition(self, transition, reward=None):
+        if not self.is_test:
+            if reward:
+                self.transition = transition[:2] + [reward] + transition[3:]
+            else:
+                self.transition = transition
+
+            # N-step transition
+            if self.use_n_step:
+                one_step_transition = self.memory_n.store(*self.transition)
+            # 1-step transition
+            else:
+                one_step_transition = self.transition
+
+            # add a single step transition
+            if one_step_transition:
+                self.memory.store(*one_step_transition)

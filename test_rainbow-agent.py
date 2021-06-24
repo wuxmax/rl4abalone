@@ -1,14 +1,14 @@
 import random
 
 import gym
-from gym_abalone.envs import abalone_env # necessary for env registraion
+from gym_abalone.envs import abalone_env # necessary for env registration
 
 import torch
 import numpy as np
 
 from rainbow_module.agent import DQNAgent
 
-AGENT_FILE_PATH: str = "rainbow-agent_v0.pth"
+AGENT_FILE_PATH: str = "rainbow-agent.pth"
 LOAD_FROM_FILE: bool = True
 
 
