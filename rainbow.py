@@ -592,7 +592,7 @@ class DQNAgent:
 
         return loss.item()
 
-    def train(self, num_frames: int, plotting_interval: int = 400):
+    def train(self, num_frames: int, plotting_interval: int = 600):
         """Train the agent."""
         self.is_test = False
 
@@ -620,6 +620,17 @@ class DQNAgent:
             elif str(info['move_type']) == "winner":
                 print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
 
+            # if episode ends
+            if done:
+                if turn < self.env.max_turns:
+                    print(f"ITS TURN {turn} AND I AM SAVING BBY")
+                    self.add_custom_transition(last_opposing_player_transition, reward=-12)
+                state = self._cvst(self.env.reset(random_player=False), 0)
+                turn = 0
+                scores.append(max(score_black, score_white))
+                score_black = 0
+                score_white = 0
+
             turn += 1
             last_opposing_player_transition = [state, action, reward, next_state, done]
             state = next_state
@@ -629,17 +640,6 @@ class DQNAgent:
             # PER: increase beta
             fraction = min(frame_idx / num_frames, 1.0)
             self.beta = self.beta + fraction * (1.0 - self.beta)
-
-            # if episode ends
-            if done:
-                print(turn)
-                if turn != 400:
-                    self.add_custom_transition(last_opposing_player_transition, reward=-12)
-                state = self._cvst(self.env.reset(random_player=False), 0)
-                turn = 0
-                scores.append(max(score_black, score_white))
-                score_black = 0
-                score_white = 0
 
             # if training is ready
             if len(self.memory) >= self.batch_size:

@@ -1,7 +1,7 @@
 import random
 
 import gym
-from gym_abalone.envs import abalone_env # necessary for env registraion
+from gym_abalone.envs import abalone_env # necessary for env registration
 
 import torch
 import numpy as np
