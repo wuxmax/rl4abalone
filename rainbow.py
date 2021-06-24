@@ -618,8 +618,15 @@ class DQNAgent:
             if str(info['move_type']) == "ejected":
                 print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
             elif str(info['move_type']) == "winner":
-                self.add_custom_transition(last_opposing_player_transition, reward=-12)
-                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
+                # score update depending on defeat
+                score_black -= 12 if info['player_name'] == 'white' else 0
+                score_white -= 12 if info['player_name'] == 'black' else 0
+
+                # saving the negative reward from defeat into replay buffer
+                self.add_custom_transition(last_opposing_player_transition, reward=-1)
+
+                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!\n"
+                      f"The looser scored with {score_black if info['player_name'] == 'white' else score_white}!")
 
             turn += 1
             last_opposing_player_transition = self.transition
