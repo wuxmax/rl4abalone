@@ -514,7 +514,7 @@ class DQNAgent:
         # mode: train / test
         self.is_test = False
 
-    def _cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
+    def cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
         """Convert gym_abalone state into 121x3 representation"""
         black = state.flatten().copy()
         black[black < 1] = 0
@@ -542,7 +542,7 @@ class DQNAgent:
     def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = self._cvst(next_state, turn+1)
+        next_state = self.cvst(next_state, turn+1)
 
         if not self.is_test:
             self.add_custom_transition(self.transition + [reward, next_state, done])
@@ -596,7 +596,7 @@ class DQNAgent:
         """Train the agent."""
         self.is_test = False
 
-        state = self._cvst(self.env.reset(random_player=False), 0)
+        state = self.cvst(self.env.reset(random_player=False), 0)
         update_cnt = 0
         losses = []
         scores = []
@@ -638,7 +638,7 @@ class DQNAgent:
 
             # if episode ends
             if done:
-                state = self._cvst(self.env.reset(random_player=False), 0)
+                state = self.cvst(self.env.reset(random_player=False), 0)
                 turn = 0
                 scores.append(max(score_black, score_white))
                 score_black = 0
@@ -660,37 +660,6 @@ class DQNAgent:
 
         self.env.close()
 
-    def test(self):# -> List[np.ndarray]:
-        """Test the agent."""
-        self.is_test = True
-
-        state = self._cvst(self.env.reset(random_player=False), 0)
-        done = False
-        score_black = 0
-        score_white = 0
-        turn = 0
-
-        # frames = []
-        while not done:
-            # frames.append(self.env.render(mode="rgb_array"))
-            action = self.select_action(state)
-            next_state, reward, done, info = self.step(action, turn)
-
-            if turn % 2 == 0:
-                score_white += reward
-            else:
-                score_black += reward
-
-            turn += 1
-            state = next_state
-
-            print(f"{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
-            self.env.render(fps=0.5)
-
-        print(f"Testing completed. Score: {max(score_black, score_white)}")
-        self.env.close()
-
-        # return frames
 
     def _compute_dqn_loss(self, samples: Dict[str, np.ndarray], gamma: float) -> torch.Tensor:
         """Return categorical dqn loss."""
