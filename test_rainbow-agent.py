@@ -8,7 +8,7 @@ import numpy as np
 
 from rainbow_module.agent import DQNAgent
 
-AGENT_FILE_PATH: str = "rainbow-agent_v0.pth"
+AGENT_FILE_PATH: str = "rainbow-agent.pth"
 LOAD_FROM_FILE: bool = True
 
 

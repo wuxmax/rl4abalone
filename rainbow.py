@@ -545,18 +545,7 @@ class DQNAgent:
         next_state = self._cvst(next_state, turn+1)
 
         if not self.is_test:
-            self.transition += [reward, next_state, done]
-
-            # N-step transition
-            if self.use_n_step:
-                one_step_transition = self.memory_n.store(*self.transition)
-            # 1-step transition
-            else:
-                one_step_transition = self.transition
-
-            # add a single step transition
-            if one_step_transition:
-                self.memory.store(*one_step_transition)
+            self.add_custom_transition(self.transition + [reward, next_state, done])
 
         return next_state, reward, done, info
 
@@ -614,6 +603,7 @@ class DQNAgent:
         score_black = 0
         score_white = 0
         turn = 0
+        last_opposing_player_transition = list()
 
         for frame_idx in tqdm(range(1, num_frames + 1)):
             action = self.select_action(state)
@@ -631,6 +621,7 @@ class DQNAgent:
                 print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!")
 
             turn += 1
+            last_opposing_player_transition = [state, action, reward, next_state, done]
             state = next_state
 
             # NoisyNet: removed decrease of epsilon
@@ -641,6 +632,9 @@ class DQNAgent:
 
             # if episode ends
             if done:
+                print(turn)
+                if turn != 400:
+                    self.add_custom_transition(last_opposing_player_transition, reward=-12)
                 state = self._cvst(self.env.reset(random_player=False), 0)
                 turn = 0
                 scores.append(max(score_black, score_white))
@@ -782,3 +776,21 @@ class DQNAgent:
                     if isinstance(v, torch.Tensor):
                         state[k] = v.cuda()
         print(f"Done!")
+
+    def add_custom_transition(self, transition, reward=None):
+        if not self.is_test:
+            if reward:
+                self.transition = transition[:2] + [reward] + transition[3:]
+            else:
+                self.transition = transition
+
+            # N-step transition
+            if self.use_n_step:
+                one_step_transition = self.memory_n.store(*self.transition)
+            # 1-step transition
+            else:
+                one_step_transition = self.transition
+
+            # add a single step transition
+            if one_step_transition:
+                self.memory.store(*one_step_transition)
