@@ -10,14 +10,14 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from .buffer import ReplayBuffer, PrioritizedReplayBuffer
-from .networks import Network
+from .network import Network
 
 IN_COLAB = "google.colab" in sys.modules
 if IN_COLAB:
     from IPython.display import clear_output
 
 
-class DQNAgent:
+class RainbowAgent:
     """DQN Agent interacting with environment.
 
     Attribute:

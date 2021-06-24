@@ -122,6 +122,17 @@ class Network(nn.Module):
 
         return q
 
+    # def forward(self, x: torch.Tensor) -> torch.Tensor:
+    #     """Forward method implementation."""
+    #     feature = self.feature_layer(x)
+    #
+    #     value = self.value_layer(feature)
+    #     advantage = self.advantage_layer(feature)
+    #
+    #     q = value + advantage - advantage.mean(dim=-1, keepdim=True)
+    #
+    #     return q
+
     def dist(self, x: torch.Tensor) -> torch.Tensor:
         """Get distribution for atoms."""
         feature = self.feature_layer(x)

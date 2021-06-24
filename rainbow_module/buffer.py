@@ -177,6 +177,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         weights = np.array([self._calculate_weight(i, beta) for i in indices])
 
         return dict(
+
             obs=obs,
             next_obs=next_obs,
             acts=acts,
