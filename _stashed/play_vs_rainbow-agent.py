@@ -1,14 +1,8 @@
 import random
-import pyglet
 import time
 import gym
 import torch
 import numpy as np
-from gym_abalone.envs import abalone_env
-from gym_abalone.envs.abalone_env import AbaloneEnv
-
-from rainbow import DQNAgent
-
 
 AGENT_FILE_PATH: str = "rainbow-agent.pth"
 

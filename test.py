@@ -5,18 +5,19 @@ import numpy as np
 from halo import Halo
 
 from gym_abalone.envs.abalone_env import AbaloneEnv
-from rainbow_module.agent import RainbowAgent
-from rainbow_module.config import RainbowConfig
-from rainbow import DQNAgent
-from random_agent import RandomAgent
-from utils import set_seeds
+from agents.rainbow.agent import RainbowAgent
+from agents.rainbow.config import RainbowConfig
+from agents.random_agent import RandomAgent
+from agents.agent import Agent
+from utils import set_seeds, cvst
 
-AGENT_FILE_PATHS: List = ["rainbow-agent.pth"]
-GAMES_PER_BENCHMARK = 100
+# AGENT_FILE_PATHS: List = ["rainbow-agent.pth"]
+AGENT_FILE_PATHS: List = [None]
+# GAMES_PER_BENCHMARK = 100
+GAMES_PER_BENCHMARK = 1
 MAX_TURNS: int = 400
-ENABLE_GUI: bool = False
+ENABLE_GUI: bool = True
 RESULTS_FILE = "results.csv"
-EPISODES: int = 1
 RANDOM_SEED = 777
 
 spinner = Halo(spinner='dots')
@@ -29,10 +30,9 @@ def load_agent(path: str, env: AbaloneEnv):
         target_update = 100
         config = RainbowConfig()
         agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
-        # agent = DQNAgent(env, memory_size, batch_size, target_update)
 
-    elif path is "random":
-        agent = RandomAgent(env)
+    elif path == "random":
+        agent = RandomAgent(env, priorities=['winner', 'ejected', 'inline_push', 'inline_move', 'sidestep_move'])
 
     else:
         with open(path, "rb") as f:
@@ -57,7 +57,7 @@ def print_game_info(info: Dict, reward: int, score_white: int, score_black: int)
               f"The looser scored {score_looser}!")
 
 
-def test_step(agent: DQNAgent, state: np.ndarray, turn: int, score_white: int, score_black: int, enable_gui: bool,
+def test_step(agent: Agent, state: np.ndarray, turn: int, score_white: int, score_black: int, enable_gui: bool,
               env: AbaloneEnv):
     action = agent.select_action(state)
     next_state, reward, done, info = agent.step(action, turn)
@@ -84,7 +84,7 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
     agent.is_test = True
 
     for episode in range(episodes):
-        state = agent.cvst(env.reset(random_player=False), 0)
+        state = cvst(env.reset(random_player=False), 0)
         score_black = 0
         score_white = 0
         turn = 0
@@ -113,7 +113,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     agent2.is_test = True
 
     for episode in range(episodes):
-        state = agent1.cvst(env.reset(random_player=False), 0)
+        state = cvst(env.reset(random_player=False), 0)
         score_black = 0
         score_white = 0
         turn = 0

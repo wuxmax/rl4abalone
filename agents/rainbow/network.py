@@ -117,13 +117,25 @@ class DQN(nn.Module):
             nn.ReLU(),
         )
 
-        # set advantage layer
-        self.advantage_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
-        self.advantage_layer = deep_linear_class(hidden_dim, out_dim * atom_size)
+        if self.feature_conf.distributional_net:
+            # set advantage layer
+            self.advantage_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
+            self.advantage_layer = deep_linear_class(hidden_dim, out_dim * atom_size)
 
-        # set value layer
-        self.value_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
-        self.value_layer = deep_linear_class(hidden_dim, atom_size)
+            # set value layer
+            self.value_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
+            self.value_layer = deep_linear_class(hidden_dim, atom_size)
+
+        else:
+            # set advantage layer
+            self.advantage_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim),
+                                                 nn.ReLU(),
+                                                 deep_linear_class(hidden_dim, out_dim))
+
+            # set value layer
+            self.value_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim),
+                                             nn.ReLU(),
+                                             deep_linear_class(hidden_dim, 1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""

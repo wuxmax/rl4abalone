@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from .config import RainbowConfig
 from .buffer import ReplayBuffer, PrioritizedReplayBuffer
 from .network import DQN
+from utils import cvst
+from agents.agent import Agent
 
 
 IN_COLAB = "google.colab" in sys.modules
@@ -19,7 +21,7 @@ if IN_COLAB:
     from IPython.display import clear_output
 
 
-class RainbowAgent:
+class RainbowAgent(Agent):
     """DQN Agent interacting with environment.
 
     Attribute:
@@ -143,17 +145,6 @@ class RainbowAgent:
         # mode: train / test
         self.is_test = False
 
-    def cvst(self, state: np.ndarray, turn: int) -> np.ndarray:
-        """Convert gym_abalone state into 121x3 representation"""
-        black = state.flatten().copy()
-        black[black < 1] = 0
-        white = state.flatten()
-        white[white > 0] = -1
-        white[white == 0] = 1
-        white[white < 1] = 0
-        current_player = np.zeros(121, dtype="int64") if turn % 2 == 0 else np.ones(121, dtype="int64")
-        return np.concatenate((black, white, current_player), axis=0)
-
     def select_action(self, state: np.ndarray) -> Tuple[int, int]:
         """Select an action from the input state."""
         # NoisyNet: no epsilon greedy action selection
@@ -175,7 +166,7 @@ class RainbowAgent:
     def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = self.cvst(next_state, turn+1)
+        next_state = cvst(next_state, turn+1)
 
         if not self.is_test:
             self.add_custom_transition(self.transition + [reward, next_state, done])
@@ -230,7 +221,7 @@ class RainbowAgent:
         """Train the agent."""
         self.is_test = False
 
-        state = self.cvst(self.env.reset(random_player=False), 0)
+        state = cvst(self.env.reset(random_player=False), 0)
         update_cnt = 0
         losses = []
         scores = []
@@ -272,7 +263,7 @@ class RainbowAgent:
 
             # if episode ends
             if done:
-                state = self.cvst(self.env.reset(random_player=False), 0)
+                state = cvst(self.env.reset(random_player=False), 0)
                 turn = 0
                 scores.append(max(score_black, score_white))
                 score_black = 0

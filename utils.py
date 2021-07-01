@@ -12,3 +12,16 @@ def set_seeds(seed, env):
     if torch.backends.cudnn.enabled:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
+
+
+def cvst(state: np.ndarray, turn: int) -> np.ndarray:
+    """Convert gym_abalone state into 121x3 representation"""
+    black = state.flatten().copy()
+    black[black < 1] = 0
+    white = state.flatten()
+    white[white > 0] = -1
+    white[white == 0] = 1
+    white[white < 1] = 0
+    current_player = np.zeros(121, dtype="int64") if turn % 2 == 0 else np.ones(121, dtype="int64")
+    return np.concatenate((black, white, current_player), axis=0)
+
