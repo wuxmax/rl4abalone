@@ -15,7 +15,7 @@ from utils import set_seeds
 AGENT_FILE_PATH_1: str = ""
 AGENT_FILE_PATH_2: str = ""
 MAX_TURNS: int = 400
-ENABLE_GUI: bool = False
+ENABLE_GUI: bool = True
 EPISODES: int = 1
 RANDOM_SEED = 777
 
@@ -67,7 +67,7 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
         memory_size = 1000
         batch_size = 128
         target_update = 100
-        config = RainbowConfig()
+        config = RainbowConfig(noisy_net=True, distributional_net=False)
         agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
         # agent = DQNAgent(env, memory_size, batch_size, target_update)
 
