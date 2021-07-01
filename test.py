@@ -1,4 +1,5 @@
-import random
+from typing import Dict, List
+
 import torch
 import numpy as np
 from halo import Halo
@@ -8,22 +9,18 @@ from rainbow_module.agent import RainbowAgent
 from rainbow_module.config import RainbowConfig
 from rainbow import DQNAgent
 from random_agent import RandomAgent
-from typing import Dict, List
 from utils import set_seeds
 
 AGENT_FILE_PATHS: List = ["rainbow-agent.pth"]
 GAMES_PER_BENCHMARK = 100
 MAX_TURNS: int = 400
-<<<<<<< HEAD
-ENABLE_GUI: bool = True
-=======
 ENABLE_GUI: bool = False
 RESULTS_FILE = "results.csv"
->>>>>>> 53bd24340b7cf7cd675183f1053a828cc07dda1a
 EPISODES: int = 1
 RANDOM_SEED = 777
 
 spinner = Halo(spinner='dots')
+
 
 def load_agent(path: str, env: AbaloneEnv):
     if not path:
@@ -44,6 +41,7 @@ def load_agent(path: str, env: AbaloneEnv):
             agent.env = env
 
     return agent
+
 
 def print_game_info(info: Dict, reward: int, score_white: int, score_black: int):
     if str(info['move_type']) == "ejected":
@@ -132,6 +130,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
         spinner.stop()
 
         if results_file:
+            pass
             # write results
 
     env.close()
@@ -145,7 +144,6 @@ def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int
     for agent_path in agent_path_list:
         agent_vs_agent(white_agent_file_path=agent_path, black_agent_file_path="random", max_turns=max_turns,
                        enable_gui=enable_gui, episodes=num_games, results_file=results_file)
-
 
 
 if __name__ == "__main__":
