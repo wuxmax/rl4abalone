@@ -525,7 +525,7 @@ class DQNAgent:
         current_player = np.zeros(121, dtype="int64") if turn % 2 == 0 else np.ones(121, dtype="int64")
         return np.concatenate((black, white, current_player), axis=0)
 
-    def select_action(self, state: np.ndarray) -> np.ndarray:
+    def select_action(self, state: np.ndarray) -> Tuple:
         """Select an action from the input state."""
         # NoisyNet: no epsilon greedy action selection
 
@@ -539,7 +539,7 @@ class DQNAgent:
         # return selected_action
         return selected_action // 61, selected_action % 61
 
-    def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
+    def step(self, action: Tuple, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
         next_state = self.cvst(next_state, turn+1)
