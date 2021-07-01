@@ -1,31 +1,42 @@
 import random
 import torch
-
 import numpy as np
 
 from gym_abalone.envs.abalone_env import AbaloneEnv
 
+from rainbow_module.agent import RainbowAgent
+from rainbow_module.config import RainbowConfig
+from rainbow import DQNAgent
+from utils import set_seeds
 
-def reset_seeds(seed, env):
-    np.random.seed(seed)
-    random.seed(seed)
-    env.seed(seed)
-    torch.manual_seed(seed)
-    if torch.backends.cudnn.enabled:
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
+# AGENT_FILE_PATH_1: str = "rainbow-agent.pth"  # used for self play
+AGENT_FILE_PATH_1: str = None  # used for self play
+AGENT_FILE_PATH_2: str = "rainbow-agent.pth"
+MAX_TURNS: int = 9999
+ENABLE_GUI: bool = False
+EPISODES: int = 1
 
 
 def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
     """Test the agent."""
-    with open(agent_file_path, "rb") as f:
-        agent = torch.load(f, map_location=torch.device('cpu'))
-        agent.reset_torch_device()
-
     env = AbaloneEnv(max_turns=max_turns)
+    set_seeds(777, env)
+
+    if agent_file_path:
+        with open(agent_file_path, "rb") as f:
+            agent = torch.load(f, map_location=torch.device('cpu'))
+            agent.reset_torch_device()
+    else:
+        # num_frames = 2000
+        memory_size = 1000
+        batch_size = 128
+        target_update = 100
+        # config = RainbowConfig()
+        # agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
+        agent = DQNAgent(env, memory_size, batch_size, target_update)
+
     agent.env = env
-    agent.is_test = False
-    reset_seeds(777, env)
+    agent.is_test = True
 
     for episode in range(episodes):
         state = agent.cvst(env.reset(random_player=False), 0)
@@ -120,11 +131,5 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
 
 
 if __name__ == "__main__":
-    AGENT_FILE_PATH_1: str = "rainbow-agent.pth"
-    AGENT_FILE_PATH_2: str = "rainbow-agent.pth"
-    MAX_TURNS: int = 9999
-    ENABLE_GUI: bool = False
-    EPISODES: int = 1
-
     self_play(AGENT_FILE_PATH_1, MAX_TURNS, ENABLE_GUI, EPISODES)
     # agent_vs_agent(AGENT_FILE_PATH_1, AGENT_FILE_PATH_2, MAX_TURNS, ENABLE_GUI, EPISODES)

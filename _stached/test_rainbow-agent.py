@@ -43,4 +43,3 @@ else:
     config = RainbowConfig()
     agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
 
-agent.test()
