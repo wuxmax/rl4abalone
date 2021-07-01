@@ -11,11 +11,13 @@ from rainbow import DQNAgent
 from typing import Dict
 from utils import set_seeds
 
-AGENT_FILE_PATH_1: str = "rainbow-agent.pth"
+# AGENT_FILE_PATH_1: str = "rainbow-agent.pth"
+AGENT_FILE_PATH_1: str = ""
 AGENT_FILE_PATH_2: str = ""
 MAX_TURNS: int = 400
 ENABLE_GUI: bool = False
 EPISODES: int = 1
+RANDOM_SEED = 777
 
 spinner = Halo(spinner='dots')
 
@@ -54,7 +56,7 @@ def test_step(agent: DQNAgent, state: np.ndarray, turn: int, score_white: int, s
 def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
     """Test the agent."""
     env = AbaloneEnv(max_turns=max_turns)
-    set_seeds(777, env)
+    set_seeds(RANDOM_SEED, env)
 
     if agent_file_path:
         with open(agent_file_path, "rb") as f:
@@ -106,7 +108,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     agent2.env = env
     agent1.is_test = False
     agent2.is_test = False
-    set_seeds(777, env)
+    set_seeds(RANDOM_SEED, env)
 
     for episode in range(episodes):
         state = agent1.cvst(env.reset(random_player=False), 0)
