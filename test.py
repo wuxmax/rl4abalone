@@ -1,6 +1,7 @@
 import random
 import torch
 import numpy as np
+from halo import Halo
 
 from gym_abalone.envs.abalone_env import AbaloneEnv
 
@@ -15,6 +16,8 @@ AGENT_FILE_PATH_2: str = "rainbow-agent.pth"
 MAX_TURNS: int = 9999
 ENABLE_GUI: bool = False
 EPISODES: int = 1
+
+spinner = Halo(spinner='dots')
 
 
 def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
@@ -31,12 +34,12 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
         memory_size = 1000
         batch_size = 128
         target_update = 100
-        # config = RainbowConfig()
-        # agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
-        agent = DQNAgent(env, memory_size, batch_size, target_update)
+        config = RainbowConfig()
+        agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
+        # agent = DQNAgent(env, memory_size, batch_size, target_update)
 
     agent.env = env
-    agent.is_test = True
+    agent.is_test = False
 
     for episode in range(episodes):
         state = agent.cvst(env.reset(random_player=False), 0)
@@ -44,6 +47,8 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
         score_white = 0
         turn = 0
         done = False
+
+        spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
         while not done:
             action = agent.select_action(state)
@@ -71,6 +76,8 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
 
             turn += 1
             state = next_state
+
+        spinner.stop()
 
     env.close()
 
