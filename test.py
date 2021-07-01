@@ -4,28 +4,52 @@ import numpy as np
 from halo import Halo
 
 from gym_abalone.envs.abalone_env import AbaloneEnv
-
 from rainbow_module.agent import RainbowAgent
 from rainbow_module.config import RainbowConfig
 from rainbow import DQNAgent
-from typing import Dict
+from random_agent import RandomAgent
+from typing import Dict, List
 from utils import set_seeds
 
-# AGENT_FILE_PATH_1: str = "rainbow-agent.pth"
-AGENT_FILE_PATH_1: str = ""
-AGENT_FILE_PATH_2: str = ""
+AGENT_FILE_PATHS: List = ["rainbow-agent.pth"]
+GAMES_PER_BENCHMARK = 100
 MAX_TURNS: int = 400
+<<<<<<< HEAD
 ENABLE_GUI: bool = True
+=======
+ENABLE_GUI: bool = False
+RESULTS_FILE = "results.csv"
+>>>>>>> 53bd24340b7cf7cd675183f1053a828cc07dda1a
 EPISODES: int = 1
 RANDOM_SEED = 777
 
 spinner = Halo(spinner='dots')
 
+def load_agent(path: str, env: AbaloneEnv):
+    if not path:
+        memory_size = 1000
+        batch_size = 128
+        target_update = 100
+        config = RainbowConfig()
+        agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
+        # agent = DQNAgent(env, memory_size, batch_size, target_update)
+
+    elif path is "random":
+        agent = RandomAgent(env)
+
+    else:
+        with open(path, "rb") as f:
+            agent = torch.load(f, map_location=torch.device('cpu'))
+            agent.reset_torch_device()
+            agent.env = env
+
+    return agent
 
 def print_game_info(info: Dict, reward: int, score_white: int, score_black: int):
     if str(info['move_type']) == "ejected":
         print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} "
               f"| reward={reward: >4}")
+
     elif str(info['move_type']) == "winner":
         # score update depending on defeat
         score_winner = score_white if info['player_name'] == 'white' else score_black
@@ -58,21 +82,8 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
     env = AbaloneEnv(max_turns=max_turns)
     set_seeds(RANDOM_SEED, env)
 
-    if agent_file_path:
-        with open(agent_file_path, "rb") as f:
-            agent = torch.load(f, map_location=torch.device('cpu'))
-            agent.reset_torch_device()
-    else:
-        # num_frames = 2000
-        memory_size = 1000
-        batch_size = 128
-        target_update = 100
-        config = RainbowConfig(noisy_net=True, distributional_net=False)
-        agent = RainbowAgent(env, memory_size, batch_size, target_update, feature_conf=config)
-        # agent = DQNAgent(env, memory_size, batch_size, target_update)
-
-    agent.env = env
-    agent.is_test = False
+    agent = load_agent(agent_file_path, env)
+    agent.is_test = True
 
     for episode in range(episodes):
         state = agent.cvst(env.reset(random_player=False), 0)
@@ -94,21 +105,14 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
 
 
 def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_turns: int = 400,
-                   enable_gui: bool = False, episodes: int = 1):
-    with open(white_agent_file_path, "rb") as f:
-        agent1 = torch.load(f, map_location=torch.device('cpu'))
-        agent1.reset_torch_device()
-
-    with open(black_agent_file_path, "rb") as f:
-        agent2 = torch.load(f, map_location=torch.device('cpu'))
-        agent2.reset_torch_device()
-
+                   enable_gui: bool = False, episodes: int = 1, results_file: str = None):
     env = AbaloneEnv(max_turns=max_turns)
-    agent1.env = env
-    agent2.env = env
-    agent1.is_test = False
-    agent2.is_test = False
     set_seeds(RANDOM_SEED, env)
+
+    agent1 = load_agent(white_agent_file_path, env)
+    agent2 = load_agent(black_agent_file_path, env)
+    agent1.is_test = True
+    agent2.is_test = True
 
     for episode in range(episodes):
         state = agent1.cvst(env.reset(random_player=False), 0)
@@ -117,15 +121,34 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
         turn = 0
         done = False
 
+        spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
+
         while not done:
             turn_player = agent1 if turn % 2 == 0 else agent2
             state, score_white, score_black, turn, done = test_step(agent=turn_player, state=state, turn=turn,
                                                                     score_white=score_white, score_black=score_black,
                                                                     enable_gui=enable_gui, env=env)
 
+        spinner.stop()
+
+        if results_file:
+            # write results
+
     env.close()
 
 
+def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int = 400, enable_gui: bool = False,
+                     results_file: str = None):
+    env = AbaloneEnv(max_turns=max_turns)
+    set_seeds(RANDOM_SEED, env)
+
+    for agent_path in agent_path_list:
+        agent_vs_agent(white_agent_file_path=agent_path, black_agent_file_path="random", max_turns=max_turns,
+                       enable_gui=enable_gui, episodes=num_games, results_file=results_file)
+
+
+
 if __name__ == "__main__":
-    self_play(AGENT_FILE_PATH_1, MAX_TURNS, ENABLE_GUI, EPISODES)
-    # agent_vs_agent(AGENT_FILE_PATH_1, AGENT_FILE_PATH_2, MAX_TURNS, ENABLE_GUI, EPISODES)
+    # self_play(AGENT_FILE_PATHS[0], MAX_TURNS, ENABLE_GUI, EPISODES)
+    # agent_vs_agent(AGENT_FILE_PATHS[0], AGENT_FILE_PATHS[1], MAX_TURNS, ENABLE_GUI, EPISODES)
+    benchmark_agents(AGENT_FILE_PATHS, GAMES_PER_BENCHMARK, MAX_TURNS, ENABLE_GUI, RESULTS_FILE)
