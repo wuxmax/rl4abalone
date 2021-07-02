@@ -1,4 +1,7 @@
+from typing import Tuple
+
 import gym
+import numpy as np
 
 
 class Agent:
@@ -6,10 +9,10 @@ class Agent:
             self,
             env: gym.Env
     ):
+        self.env = env
+
+    def select_action(self, state: np.ndarray):
         raise NotImplementedError
 
-    def select_action(self):
-        raise NotImplementedError
-
-    def step(self):
+    def step(self, action: Tuple[int, int], turn: int):
         raise NotImplementedError

@@ -1,5 +1,4 @@
-import sys
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import gym
@@ -7,22 +6,17 @@ import torch
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 from .config import RainbowConfig
 from .buffer import ReplayBuffer, PrioritizedReplayBuffer
 from .network import DQN
-from utils import cvst
+from .utils import _plot
+from utils import cvst, cvact
 from agents.agent import Agent
 
 
-IN_COLAB = "google.colab" in sys.modules
-if IN_COLAB:
-    from IPython.display import clear_output
-
-
 class RainbowAgent(Agent):
-    """DQN Agent interacting with environment.
+    """Rainbow Agent interacting with environment.
 
     Attribute:
         env (gym.Env): openAI Gym environment
@@ -51,14 +45,18 @@ class RainbowAgent(Agent):
             batch_size: int,
             target_update: int,
             gamma: float = 0.99,
-            hidden_dim: int = 128,
+            hidden_dim: int = 512,
             # PER parameters
-            alpha: float = 0.2,
-            beta: float = 0.6,
+            alpha: float = 0.5,
+            beta: float = 0.4,
             prior_eps: float = 1e-6,
+            # Epsilon-greedy parameters
+            epsilon_decay: float = 1 / 2000,  # taken from RIAYN | 250K frames in RP
+            max_epsilon: float = 1.0,
+            min_epsilon: float = 0.01,
             # Categorical DQN parameters
-            v_min: float = 0.0,
-            v_max: float = 200.0,
+            v_min: float = -10,
+            v_max: float = 10,
             atom_size: int = 51,
             # N-step Learning
             n_step: int = 3,
@@ -82,6 +80,7 @@ class RainbowAgent(Agent):
             atom_size (int): the unit number of support
             n_step (int): step number to calculate n-step td error
         """
+        super().__init__(env)
 
         self.feature_conf = feature_conf
 
@@ -90,17 +89,22 @@ class RainbowAgent(Agent):
         # obs_dim = env.observation_space.shape[0]
         # action_dim = env.action_space.n
 
-        self.env = env
         self.batch_size = batch_size
         self.target_update = target_update
         self.gamma = gamma
-        # NoisyNet: All attributes related to epsilon are removed
 
         # device: cpu / gpu
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
         print(self.device)
+
+        # Epsilon-greedy (if no NoisyNet)
+        if not feature_conf.noisy_net:
+            self.epsilon = max_epsilon
+            self.epsilon_decay = epsilon_decay
+            self.max_epsilon = max_epsilon
+            self.min_epsilon = min_epsilon
 
         # PER
         # memory for 1-step Learning
@@ -145,25 +149,30 @@ class RainbowAgent(Agent):
         # mode: train / test
         self.is_test = False
 
+    def _get_dqn_action(self, state: np.ndarray):
+        action_probs = self.dqn(torch.FloatTensor(state).to(self.device)).detach().cpu().numpy()
+        action_probs_masked = action_probs * self.env.get_action_mask()
+        return action_probs_masked.argmax()
+
+    # expects an 'get_action_mask' function as provided by gym_abalone
+    # see:  https://github.com/towzeur/gym-abalone/blob/048e443101c29bbc20ff6646beeca92c5776b1e7/
+    #       gym_abalone/envs/abalone_env.py#L149
     def select_action(self, state: np.ndarray) -> Tuple[int, int]:
         """Select an action from the input state."""
-        # NoisyNet: no epsilon greedy action selection
-
-        action_probs = self.dqn(torch.FloatTensor(state).to(self.device)).detach().cpu().numpy()
-        # expects an 'get_action_mask' function as provided by gym_abalone
-        # see:  https://github.com/towzeur/gym-abalone/blob/048e443101c29bbc20ff6646beeca92c5776b1e7/
-        #       gym_abalone/envs/abalone_env.py#L149
-        action_probs_masked = action_probs * self.env.get_action_mask()
-        selected_action = action_probs_masked.argmax()
+        # if no NoisyNet: epsilon greedy policy
+        if not self.is_test and not self.feature_conf.noisy_net and self.epsilon > np.random.random():
+            # if no NoisyNet: epsilon greedy policy
+            possible_actions = np.flatnonzero(self.env.get_action_mask())
+            selected_action = np.random.choice(possible_actions)
+        else:
+            selected_action = self._get_dqn_action(state)
 
         if not self.is_test:
             self.transition = [state, selected_action]
 
-        # return selected_action
-        # actions are converted according to this: https://github.com/towzeur/gym-abalone#actions
-        return selected_action // 61, selected_action % 61
+        return cvact(selected_action)
 
-    def step(self, action: np.ndarray, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
+    def step(self, action: Tuple[int, int], turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
         next_state = cvst(next_state, turn+1)
@@ -217,7 +226,14 @@ class RainbowAgent(Agent):
 
         return loss.item()
 
-    def train(self, num_frames: int, plotting_interval: int = 200):
+    def _decrease_epsilon(self):
+        self.epsilon = max(
+            self.min_epsilon, self.epsilon - (
+                    self.max_epsilon - self.min_epsilon
+            ) * self.epsilon_decay
+        )
+
+    def train(self, num_turns_total: int, plotting_interval: int = 200):
         """Train the agent."""
         self.is_test = False
 
@@ -227,15 +243,15 @@ class RainbowAgent(Agent):
         scores = []
         score_black = 0
         score_white = 0
-        turn = 0
+        turn_game = 0
         last_opposing_player_transition = list()
 
-        for frame_idx in tqdm(range(1, num_frames + 1)):
+        for turn_total_idx in tqdm(range(1, num_turns_total + 1)):
             action = self.select_action(state)
 
-            next_state, reward, done, info = self.step(action, turn)
+            next_state, reward, done, info = self.step(action, turn_game)
 
-            if turn % 2 == 0:
+            if turn_game % 2 == 0:
                 score_white += reward
             else:
                 score_black += reward
@@ -253,18 +269,22 @@ class RainbowAgent(Agent):
                 print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!\n"
                       f"The looser scored with {score_black if info['player_name'] == 'white' else score_white}!")
 
-            turn += 1
+            turn_game += 1
             last_opposing_player_transition = self.transition
             state = next_state
 
             # PER: increase beta
-            fraction = min(frame_idx / num_frames, 1.0)
+            fraction = min(turn_total_idx / num_turns_total, 1.0)
             self.beta = self.beta + fraction * (1.0 - self.beta)
+
+            # if no NoisyNet: linearly decrease epsilon
+            if not self.feature_conf.noisy_net:
+                self._decrease_epsilon()
 
             # if episode ends
             if done:
                 state = cvst(self.env.reset(random_player=False), 0)
-                turn = 0
+                turn_game = 0
                 scores.append(max(score_black, score_white))
                 score_black = 0
                 score_white = 0
@@ -280,11 +300,10 @@ class RainbowAgent(Agent):
                     self._target_hard_update()
 
             # plotting
-            if frame_idx % plotting_interval == 0:
-                self._plot(frame_idx, scores, losses)
+            if turn_total_idx % plotting_interval == 0:
+                _plot(turn_total_idx, scores, losses)
 
         self.env.close()
-
 
     def _compute_dqn_loss(self, samples: Dict[str, np.ndarray], gamma: float) -> torch.Tensor:
         """Return categorical dqn loss."""
@@ -314,9 +333,9 @@ class RainbowAgent(Agent):
                 torch.linspace(
                     0, (self.batch_size - 1) * self.atom_size, self.batch_size
                 ).long()
-                    .unsqueeze(1)
-                    .expand(self.batch_size, self.atom_size)
-                    .to(self.device)
+                .unsqueeze(1)
+                .expand(self.batch_size, self.atom_size)
+                .to(self.device)
             )
 
             proj_dist = torch.zeros(next_dist.size(), device=self.device)
@@ -336,27 +355,6 @@ class RainbowAgent(Agent):
     def _target_hard_update(self):
         """Hard update: target <- local."""
         self.dqn_target.load_state_dict(self.dqn.state_dict())
-
-    def _plot(
-            self,
-            frame_idx: int,
-            scores: List[float],
-            losses: List[float],
-    ):
-        """Plot the training progresses."""
-        clear_output(True)
-        plt.figure(figsize=(20, 5))
-        plt.subplot(131)
-        plt.title('frame %s. mean score (last 10 runs): %s' % (frame_idx, np.mean(scores[-100:])))
-        plt.plot(scores)
-        plt.subplot(132)
-        plt.title('loss')
-        plt.plot(losses)
-        axes = plt.gca()
-        axes.set_xlim([max(0, len(losses) - 300), len(losses)])
-        if len(losses) > 100:
-            axes.set_ylim([-0.1, 1])
-        plt.show()
 
     def reset_torch_device(self):
         self.device = torch.device(
