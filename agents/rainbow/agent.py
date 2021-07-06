@@ -316,8 +316,7 @@ class RainbowAgent(Agent):
         reward = torch.FloatTensor(samples["rews"].reshape(-1, 1)).to(device)
         done = torch.FloatTensor(samples["done"].reshape(-1, 1)).to(device)
 
-        print(f"device: {device.size()}, "
-              f"state: {state.size()}, "
+        print(f"state: {state.size()}, "
               f"next_state: {next_state.size()}, "
               f"action: {action.size()}, "
               f"reward: {reward.size()}, "
