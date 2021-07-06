@@ -25,3 +25,9 @@ def cvst(state: np.ndarray, turn: int) -> np.ndarray:
     current_player = np.zeros(121, dtype="int64") if turn % 2 == 0 else np.ones(121, dtype="int64")
     return np.concatenate((black, white, current_player), axis=0)
 
+
+def cvact(action: int):
+    """Convert action index into position->position action"""
+    # return selected_action
+    # actions are converted according to this: https://github.com/towzeur/gym-abalone#actions
+    return action // 61, action % 61

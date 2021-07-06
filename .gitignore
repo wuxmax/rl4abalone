@@ -3,6 +3,7 @@
 .idea
 .python-version
 __pycache__
+.ipynb_checkpoints
 
 # moudules/repos
 gym-abalone

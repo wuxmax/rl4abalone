@@ -4,7 +4,7 @@ import random
 
 import numpy as np
 
-from _stashed.segment_tree import MinSegmentTree, SumSegmentTree
+from .segment_tree import MinSegmentTree, SumSegmentTree
 
 
 class ReplayBuffer:
@@ -123,7 +123,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         obs_dim: int,
         size: int,
         batch_size: int = 32,
-        alpha: float = 0.6,
+        alpha: float = 0.5,
         n_step: int = 1,
         gamma: float = 0.99,
     ):
@@ -177,7 +177,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         weights = np.array([self._calculate_weight(i, beta) for i in indices])
 
         return dict(
-
             obs=obs,
             next_obs=next_obs,
             acts=acts,
@@ -187,7 +186,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             indices=indices,
         )
 
-    def update_priorities(self, indices: List[int], priorities: np.ndarray):
+    def update_priorities(self, indices: np.ndarray, priorities: np.ndarray):
         """Update priorities of sampled transitions."""
         assert len(indices) == len(priorities)
 
@@ -200,7 +199,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
             self.max_priority = max(self.max_priority, priority)
 
-    def _sample_proportional(self) -> List[int]:
+    def _sample_proportional(self) -> np.ndarray:
         """Sample indices based on proportions."""
         indices = []
         p_total = self.sum_tree.sum(0, len(self) - 1)
@@ -213,7 +212,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             idx = self.sum_tree.retrieve(upperbound)
             indices.append(idx)
 
-        return indices
+        return np.array(indices)
 
     def _calculate_weight(self, idx: int, beta: float):
         """Calculate the weight of the experience at idx."""

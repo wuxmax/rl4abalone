@@ -1,0 +1,26 @@
+Original:
+
+Max frames: 108k
+
+Adam
+lr=0.0000625
+eps=0.00015
+
+memory_size = 1M
+batch_size = 32
+target_update = None - instead all 4 steps update using 32 batch and no updates for the first 80k frames
+gamma: float = 0.99
+hidden_dim: 512
+
+# PER parameters
+alpha: float = 0.5
+beta: float = 0.4
+prior_eps: float = None
+
+# Categorical DQN parameters
+v_min: float = -10.0,
+v_max: float = 10.0,
+atom_size: int = 51,
+
+# N-step Learning
+n_step: int = 3
