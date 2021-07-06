@@ -199,6 +199,8 @@ class RainbowAgent(Agent):
 
             # PER: importance sampling before average
             loss = torch.mean(elementwise_loss * weights)
+            print(f"elementwise_loss: {elementwise_loss.size()}, "
+                  f"weights: {weights.size()}")
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -294,6 +296,13 @@ class RainbowAgent(Agent):
         action = torch.LongTensor(samples["acts"]).to(device)
         reward = torch.FloatTensor(samples["rews"].reshape(-1, 1)).to(device)
         done = torch.FloatTensor(samples["done"].reshape(-1, 1)).to(device)
+
+        print(f"device: {device.size()}, "
+              f"state: {state.size()}, "
+              f"next_state: {next_state.size()}, "
+              f"action: {action.size()}, "
+              f"reward: {reward.size()}, "
+              f"done: {done.size()}")
 
         # Categorical DQN algorithm
         delta_z = float(self.v_max - self.v_min) / (self.atom_size - 1)
