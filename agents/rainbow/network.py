@@ -139,20 +139,21 @@ class DQN(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
-        feature = self.feature_layer(x)
 
         if self.feature_conf.distributional_net:
-            dist = self.dist(feature)
+            dist = self.dist(x)
             q = torch.sum(dist * self.support, dim=2)
         else:
+            feature = self.feature_layer(x)
             value = self.value_layer(feature)
             advantage = self.advantage_layer(feature)
             q = value + advantage - advantage.mean(dim=-1, keepdim=True)
 
         return q
 
-    def dist(self, feature: torch.Tensor) -> torch.Tensor:
+    def dist(self, x: torch.Tensor) -> torch.Tensor:
         """Get distribution for atoms."""
+        feature = self.feature_layer(x)
         adv_hid = F.relu(self.advantage_hidden_layer(feature))
         val_hid = F.relu(self.value_hidden_layer(feature))
 

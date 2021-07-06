@@ -200,7 +200,6 @@ class RainbowAgent(Agent):
         # N-step Learning loss
         # we are gonna combine 1-step loss and n-step loss so as to
         # prevent high-variance. The original rainbow employs n-step loss only.
-        print(f"use_n_step: {self.use_n_step}")
         if self.use_n_step:
             gamma = self.gamma ** self.n_step
             samples = self.memory_n.sample_batch_from_idxs(indices)
