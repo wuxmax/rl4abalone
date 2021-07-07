@@ -153,7 +153,7 @@ class RainbowAgent(Agent):
     def _get_dqn_action(self, state: np.ndarray):
         action_probs = self.dqn(torch.FloatTensor(state).to(self.device)).detach().cpu().numpy()
         if action_probs.min() < 0:
-            action_probs = action_probs + action_probs.min()
+            action_probs = action_probs - action_probs.min()
         action_probs_masked = action_probs * self.env.get_action_mask()
         return action_probs_masked.argmax()
 
