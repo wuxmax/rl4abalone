@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import gym
@@ -83,6 +83,7 @@ class RainbowAgent(Agent):
         super().__init__(env)
 
         self.feature_conf = feature_conf
+        self.trigger_states = ["winner"]
 
         obs_dim = 121 * 3
         action_dim = 61 * 61
@@ -175,7 +176,7 @@ class RainbowAgent(Agent):
     def step(self, action: Tuple[int, int], turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = cvst(next_state, turn+1)
+        next_state = cvst(next_state, turn + 1)
 
         if not self.is_test:
             self.add_custom_transition(self.transition + [reward, next_state, done])
@@ -256,18 +257,10 @@ class RainbowAgent(Agent):
             else:
                 score_black += reward
 
-            if str(info['move_type']) == "ejected":
-                print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} | reward={reward: >4}")
-            elif str(info['move_type']) == "winner":
-                # score update depending on defeat
-                score_black -= 12 if info['player_name'] == 'white' else 0
-                score_white -= 12 if info['player_name'] == 'black' else 0
-
-                # saving the negative reward from defeat into replay buffer
-                self.add_custom_transition(last_opposing_player_transition, reward=-1)
-
-                print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of {score_black if info['player_name'] == 'black' else score_white}!\n"
-                      f"The looser scored with {score_black if info['player_name'] == 'white' else score_white}!")
+            score_black, score_white = self.handle_trigger_states(score_black=score_black, score_white=score_white,
+                                                                  reward=reward, trigger_states=self.trigger_states,
+                                                                  last_opposing_player_transition=
+                                                                  last_opposing_player_transition)
 
             turn_game += 1
             last_opposing_player_transition = self.transition
@@ -333,9 +326,9 @@ class RainbowAgent(Agent):
                 torch.linspace(
                     0, (self.batch_size - 1) * self.atom_size, self.batch_size
                 ).long()
-                .unsqueeze(1)
-                .expand(self.batch_size, self.atom_size)
-                .to(self.device)
+                    .unsqueeze(1)
+                    .expand(self.batch_size, self.atom_size)
+                    .to(self.device)
             )
 
             proj_dist = torch.zeros(next_dist.size(), device=self.device)
@@ -389,3 +382,25 @@ class RainbowAgent(Agent):
             # add a single step transition
             if one_step_transition:
                 self.memory.store(*one_step_transition)
+
+    def handle_trigger_states(self, score_black: int, score_white: int, reward: int, info: Dict,
+                              trigger_states: List, last_opposing_player_transition):
+        for move in trigger_states:
+            if str(info['move_type']) == move:
+                # score update depending on negative reward
+                score_black -= reward if info['player_name'] == 'white' else 0
+                score_white -= reward if info['player_name'] == 'black' else 0
+
+                # saving the negative reward from defeat into replay buffer
+                self.add_custom_transition(last_opposing_player_transition, reward=-reward)
+
+                # print information about the triggering move
+                if str(info['move_type']) == "winner":
+                    print(f"\n{info['player_name']} won in {info['turn']: <4} turns with a total score of "
+                          f"{score_black if info['player_name'] == 'black' else score_white}!\n The looser scored with "
+                          f"{score_black if info['player_name'] == 'white' else score_white}!")
+                else:
+                    print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16}"
+                          f" | reward={reward: >4}")
+
+        return score_black, score_white
