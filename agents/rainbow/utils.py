@@ -25,8 +25,8 @@ def _plot(
     plt.subplot(132)
     plt.title('loss')
     plt.plot(losses)
-    axes = plt.gca()
-    axes.set_xlim([max(0, len(losses) - 300), len(losses)])
-    if len(losses) > 100:
-        axes.set_ylim([-0.1, 1])
+    # axes = plt.gca()
+    # axes.set_xlim([max(0, len(losses) - 300), len(losses)])
+    # if len(losses) > 100:
+    #     axes.set_ylim([-0.1, 1])
     plt.show()
