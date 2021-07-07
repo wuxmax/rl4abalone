@@ -14,5 +14,5 @@ class Agent:
     def select_action(self, state: np.ndarray):
         raise NotImplementedError
 
-    def step(self, action: Tuple[int, int], turn: int):
+    def step(self, action: Tuple[int, int]):
         raise NotImplementedError

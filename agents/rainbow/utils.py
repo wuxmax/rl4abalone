@@ -20,7 +20,7 @@ def _plot(
         clear_output(True)
     plt.figure(figsize=(20, 5))
     plt.subplot(131)
-    plt.title('frame %s. mean score (last 10 runs): %s' % (frame_idx, np.mean(scores[-100:])))
+    plt.title('turn %s. mean score (last 10 runs): %s' % (frame_idx, np.mean(scores[-100:])))
     plt.plot(scores)
     plt.subplot(132)
     plt.title('loss')
