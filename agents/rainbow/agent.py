@@ -11,7 +11,7 @@ from .config import RainbowConfig
 from .buffer import ReplayBuffer, PrioritizedReplayBuffer
 from .network import DQN
 from .utils import _plot
-from utils import cvst, cvact
+from utils import cvst, cvact, next_player
 from agents.agent import Agent
 
 
@@ -250,7 +250,8 @@ class RainbowAgent(Agent):
         for turn_total_idx in tqdm(range(1, num_turns_total + 1)):
             action = self.select_action(state)
 
-            print(f"turn: {self.env.turns}")
+            print("first assert")
+            print(f"turn_game + 1: {turn_game + 1}, self.env.turns: {self.env.turns}")
             assert turn_game + 1 == self.env.turns
 
             next_state, reward, done, info = self.step(action, turn_game)
@@ -268,6 +269,8 @@ class RainbowAgent(Agent):
 
             turn_game += 1
 
+            print("second assert")
+            print(f"turn_game + 1: {turn_game + 1}, self.env.turns: {self.env.turns}")
             assert turn_game + 1 == self.env.turns
 
             last_opposing_player_transition = self.transition

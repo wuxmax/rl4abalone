@@ -31,3 +31,8 @@ def cvact(action: int):
     # return selected_action
     # actions are converted according to this: https://github.com/towzeur/gym-abalone#actions
     return action // 61, action % 61
+
+
+def next_player(player: str):
+    return "white" if player is "black" else "black"
+
