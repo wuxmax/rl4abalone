@@ -83,7 +83,7 @@ class RainbowAgent(Agent):
         super().__init__(env)
 
         self.feature_conf = feature_conf
-        self.trigger_states = ["winner"]
+        self.trigger_states = ["ejected", "winner"]
 
         obs_dim = 121 * 3
         action_dim = 61 * 61
@@ -175,10 +175,10 @@ class RainbowAgent(Agent):
 
         return cvact(selected_action)
 
-    def step(self, action: Tuple[int, int], turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
+    def step(self, action: Tuple[int, int]) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = cvst(next_state, turn + 1)
+        next_state = cvst(next_state, next_player(self.env.current_player))
 
         if not self.is_test:
             self.add_custom_transition(self.transition + [reward, next_state, done])
@@ -239,26 +239,20 @@ class RainbowAgent(Agent):
     def train(self, num_turns_total: int, plotting_interval: int = 200):
         """Train the agent."""
         self.is_test = False
-
-        state = cvst(self.env.reset(random_player=False), 0)
+        state = cvst(self.env.reset(random_player=False))
         update_cnt = 0
         losses = []
         scores = []
         score_black = 0
         score_white = 0
-        turn_game = 0
         last_opposing_player_transition = list()
 
         for turn_total_idx in tqdm(range(1, num_turns_total + 1)):
             action = self.select_action(state)
 
-            print("first assert")
-            print(f"turn_game + 1: {turn_game + 1}, self.env.turns: {self.env.turns}")
-            assert turn_game + 1 == self.env.turns
+            next_state, reward, done, info = self.step(action)
 
-            next_state, reward, done, info = self.step(action, turn_game)
-
-            if turn_game % 2 == 0:
+            if info["player"] == 0:
                 score_white += reward
             else:
                 score_black += reward
@@ -268,12 +262,6 @@ class RainbowAgent(Agent):
                                                                   trigger_states=self.trigger_states,
                                                                   last_opposing_player_transition=
                                                                   last_opposing_player_transition)
-
-            turn_game += 1
-
-            print("second assert")
-            print(f"turn_game + 1: {turn_game + 1}, self.env.turns: {self.env.turns}")
-            assert turn_game + 1 == self.env.turns
 
             last_opposing_player_transition = self.transition
             state = next_state
@@ -288,8 +276,7 @@ class RainbowAgent(Agent):
 
             # if episode ends
             if done:
-                state = cvst(self.env.reset(random_player=False), 0)
-                turn_game = 0
+                state = cvst(self.env.reset(random_player=False))
                 scores.append(max(score_black, score_white))
                 score_black = 0
                 score_white = 0

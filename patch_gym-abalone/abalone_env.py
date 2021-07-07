@@ -13,8 +13,8 @@ class Reward:
     def method_1(observation, move_type):
 
         CONST_REWARDS = {
-            'winner'        : 1,
-            'ejected'       : 0,
+            'winner'        : 6,
+            'ejected'       : 1,
             'inline_push'   : 0,
             'sidestep_move' : 0,
             'inline_move'   : 0,
