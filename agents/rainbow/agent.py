@@ -258,7 +258,8 @@ class RainbowAgent(Agent):
                 score_black += reward
 
             score_black, score_white = self.handle_trigger_states(score_black=score_black, score_white=score_white,
-                                                                  reward=reward, trigger_states=self.trigger_states,
+                                                                  reward=reward, info=info,
+                                                                  trigger_states=self.trigger_states,
                                                                   last_opposing_player_transition=
                                                                   last_opposing_player_transition)
 
