@@ -16,7 +16,8 @@ def _plot(
         losses: List[torch.Tensor],
 ):
     """Plot the training progresses."""
-    clear_output(True)
+    if IN_COLAB:
+        clear_output(True)
     plt.figure(figsize=(20, 5))
     plt.subplot(131)
     plt.title('frame %s. mean score (last 10 runs): %s' % (frame_idx, np.mean(scores[-100:])))
