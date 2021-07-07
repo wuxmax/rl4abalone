@@ -226,8 +226,9 @@ class RainbowAgent(Agent):
 
         # NoisyNet: reset noise
         if self.feature_conf.noisy_net:
-            self.dqn.reset_noise()
-            self.dqn_target.reset_noise()
+            pass
+            # self.dqn.reset_noise()
+            # self.dqn_target.reset_noise()
 
         return loss.item()
 
