@@ -180,7 +180,7 @@ class RainbowAgent(Agent):
     def step(self, action: Tuple[int, int]) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = cvst(next_state, next_player(self.env.current_player))
+        next_state = cvst(next_state, self.env.current_player)
 
         if not self.is_test:
             self.add_custom_transition(self.transition + [reward, next_state, done])
