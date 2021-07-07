@@ -60,6 +60,8 @@ class RainbowAgent(Agent):
             atom_size: int = 51,
             # N-step Learning
             n_step: int = 3,
+            # Training warmup
+            warmup_period: int = 0,
             # Toggle rainbow features
             feature_conf: RainbowConfig = RainbowConfig()
     ):
@@ -149,6 +151,9 @@ class RainbowAgent(Agent):
 
         # mode: train / test
         self.is_test = False
+
+        # training warmup
+        self.warmup_period = warmup_period
 
     def _get_dqn_action(self, state: np.ndarray):
         action_probs = self.dqn(torch.FloatTensor(state).to(self.device)).detach().cpu().numpy()
@@ -282,7 +287,7 @@ class RainbowAgent(Agent):
                 score_white = 0
 
             # if training is ready
-            if len(self.memory) >= self.batch_size:
+            if len(self.memory) >= self.warmup_period:
                 loss = self.update_model()
                 losses.append(loss)
                 update_cnt += 1
