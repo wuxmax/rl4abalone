@@ -59,7 +59,7 @@ class RainbowAgent(Agent):
             # N-step Learning
             n_step: int = 3,
             # Training warmup
-            warmup_period: int = 0,
+            warmup_period: int = 1000,
             # Toggle rainbow features
             feature_conf: RainbowConfig = RainbowConfig()
     ):
@@ -284,7 +284,7 @@ class RainbowAgent(Agent):
                 score_white = 0
 
             # if training is ready
-            if len(self.memory) >= self.warmup_period:
+            if len(self.memory) >= self.batch_size and len(self.memory) >= self.warmup_period:
                 loss = self.update_model()
                 losses.append(loss)
                 update_cnt += 1
