@@ -11,7 +11,7 @@ from .config import RainbowConfig
 from .buffer import ReplayBuffer, PrioritizedReplayBuffer
 from .network import DQN
 from .utils import _plot
-from utils import cvst, cvact, next_player
+from utils import cvst, cvact, get_atom_distribution_borders
 from agents.agent import Agent
 
 
@@ -55,8 +55,6 @@ class RainbowAgent(Agent):
             max_epsilon: float = 1.0,
             min_epsilon: float = 0.01,
             # Categorical DQN parameters
-            v_min: float = -10,
-            v_max: float = 10,
             atom_size: int = 51,
             # N-step Learning
             n_step: int = 3,
@@ -75,8 +73,6 @@ class RainbowAgent(Agent):
             alpha (float): determines how much prioritization is used
             beta (float): determines how much importance sampling is used
             prior_eps (float): guarantees every transition can be sampled
-            v_min (float): min value of support
-            v_max (float): max value of support
             atom_size (int): the unit number of support
             n_step (int): step number to calculate n-step td error
         """
@@ -124,8 +120,9 @@ class RainbowAgent(Agent):
             )
 
         # Categorical DQN parameters
-        self.v_min = v_min
-        self.v_max = v_max
+        # v_min(float): min value of support
+        # v_max(float): max value of support
+        self.v_max, self.v_min = get_atom_distribution_borders()
         self.atom_size = atom_size
         self.support = torch.linspace(
             self.v_min, self.v_max, self.atom_size

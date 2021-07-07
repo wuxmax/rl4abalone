@@ -2,6 +2,7 @@ import random
 import torch
 
 import numpy as np
+from gym_abalone.envs.abalone_env import Reward
 
 
 def set_seeds(seed, env):
@@ -26,13 +27,16 @@ def cvst(state: np.ndarray, current_player: int = 0) -> np.ndarray:
     return np.concatenate((black, white, current_player), axis=0)
 
 
-def cvact(action: int):
+def cvact(action: int) -> (int, int):
     """Convert action index into position->position action"""
     # return selected_action
     # actions are converted according to this: https://github.com/towzeur/gym-abalone#actions
     return action // 61, action % 61
 
 
-def next_player(player: str):
-    return "white" if player is "black" else "black"
+def get_atom_distribution_borders() -> (float, float):
+    """Import correct Rewards and construct v_max and v_min accordingly"""
+    """(used for the distributional network implementation)"""
+    v_max = float(Reward.method_1(None, "winner") + 6 * Reward.method_1(None, "ejected"))
+    return v_max, -v_max
 
