@@ -250,6 +250,9 @@ class RainbowAgent(Agent):
         for turn_total_idx in tqdm(range(1, num_turns_total + 1)):
             action = self.select_action(state)
 
+            print(f"turn: {self.env.turns}")
+            assert turn_game + 1 == self.env.turns
+
             next_state, reward, done, info = self.step(action, turn_game)
 
             if turn_game % 2 == 0:
@@ -264,6 +267,9 @@ class RainbowAgent(Agent):
                                                                   last_opposing_player_transition)
 
             turn_game += 1
+
+            assert turn_game + 1 == self.env.turns
+
             last_opposing_player_transition = self.transition
             state = next_state
 
