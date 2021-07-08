@@ -349,9 +349,15 @@ class RainbowAgent(Agent):
             proj_dist.view(-1).index_add_(
                 0, (l + offset).view(-1), (next_dist * (u.float() - b)).view(-1)
             )
-            #proj_dist.view(-1).index_add_(
-            #    0, (u + offset).view(-1), (next_dist * (b - l.float())).view(-1)
-            #)
+            if torch.min(reward) < 0:
+                print(f"u: {u}"
+                      f"offset: {offset}"
+                      f"next_dist: {next_dist}"
+                      f"b: {b}"
+                      f"l: {l}")
+            proj_dist.view(-1).index_add_(
+                0, (u + offset).view(-1), (next_dist * (b - l.float())).view(-1)
+            )
 
         dist = self.dqn.dist(state)
         log_p = torch.log(dist[range(self.batch_size), action])
@@ -365,7 +371,7 @@ class RainbowAgent(Agent):
 
     def _add_custom_transition(self, transition, reward=None):
         if reward:
-            if reward  < 0:
+            if reward < 0:
                 print(transition)
         if not self.is_test:
             if reward:
