@@ -349,10 +349,6 @@ class RainbowAgent(Agent):
             proj_dist.view(-1).index_add_(
                 0, (l + offset).view(-1), (next_dist * (u.float() - b)).view(-1)
             )
-            if torch.max(u) > 50:
-                print(f"MAYDAY MAYDAY: u is {u}\n")
-                print(f"l is {l}\n")
-                print(f"b is {b}\n")
             proj_dist.view(-1).index_add_(
                 0, (u + offset).view(-1), (next_dist * (b - l.float())).view(-1)
             )
@@ -373,8 +369,6 @@ class RainbowAgent(Agent):
                 self.transition = transition[:2] + [reward] + transition[3:]
             else:
                 self.transition = transition
-                if transition[2] != 0:
-                    print(transition)
 
             # N-step transition
             if self.use_n_step:
