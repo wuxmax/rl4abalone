@@ -28,6 +28,9 @@ class NoisyLinear(nn.Module):
         """Initialization."""
         super(NoisyLinear, self).__init__()
 
+        # get device (not fully exhaustive, my lead to errors)
+        self.device = next(self.parameters()).device
+
         self.in_features = in_features
         self.out_features = out_features
         self.std_init = std_init
@@ -65,7 +68,8 @@ class NoisyLinear(nn.Module):
         epsilon_out = self.scale_noise(self.out_features)
 
         # outer product
-        self.weight_epsilon.copy_(epsilon_out.ger(epsilon_in))
+        self.weight_epsilon.copy_(epsilon_out.outer(epsilon_in))
+        # self.weight_epsilon.copy_(epsilon_out.ger(epsilon_in))
         self.bias_epsilon.copy_(epsilon_out)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -80,10 +84,11 @@ class NoisyLinear(nn.Module):
             self.bias_mu + self.bias_sigma * self.bias_epsilon,
         )
 
-    @staticmethod
-    def scale_noise(size: int) -> torch.Tensor:
+    # @staticmethod
+    def scale_noise(self, size: int) -> torch.Tensor:
         """Set scale to make noise (factorized gaussian noise)."""
-        x = torch.randn(size)
+        x = torch.empty(size, device=self.device).normal_()
+        # x = torch.randn(size)
 
         return x.sign().mul(x.abs().sqrt())
 
@@ -182,7 +187,7 @@ class DQN(nn.Module):
 
     def to(self, device):
         self.device = device
-        self.support.to(device)
+        self.support.to(device)  # not sure if this is necessary
         return super(DQN, self).to(device)
 
 

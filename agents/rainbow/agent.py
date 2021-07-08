@@ -270,7 +270,7 @@ class RainbowAgent(Agent):
                                                                    reward=reward, info=info,
                                                                    trigger_states=self.trigger_states,
                                                                    last_opposing_player_transition=
-                                                                  last_opposing_player_transition)
+                                                                   last_opposing_player_transition)
 
             last_opposing_player_transition = self.transition
             state = next_state

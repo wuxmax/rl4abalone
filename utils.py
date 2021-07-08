@@ -5,14 +5,14 @@ import numpy as np
 from gym_abalone.envs.abalone_env import Reward
 
 
-def set_seeds(seed, env):
+def set_seeds(seed, env, cudnn_deterministic: bool = False):
     np.random.seed(seed)
     random.seed(seed)
     env.seed(seed)
     torch.manual_seed(seed)
     if torch.backends.cudnn.enabled:
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = not cudnn_deterministic
+        torch.backends.cudnn.deterministic = cudnn_deterministic
 
 
 def cvst(state: np.ndarray, current_player: int = 0) -> np.ndarray:
