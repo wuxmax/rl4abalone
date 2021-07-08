@@ -107,7 +107,12 @@ class DQN(nn.Module):
         else:
             deep_linear_class = nn.Linear
 
-        self.support = support
+        # set device
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+
+        self.support = support.to(self.device)
         self.out_dim = out_dim
         self.atom_size = atom_size
 
@@ -142,7 +147,7 @@ class DQN(nn.Module):
 
         if self.feature_conf.distributional_net:
             dist = self.dist(x)
-            q = torch.sum(dist * self.support, dim=2)
+            q = torch.sum(dist * self.support.to(self.device), dim=2)
         else:
             feature = self.feature_layer(x)
             value = self.value_layer(feature)
@@ -174,3 +179,10 @@ class DQN(nn.Module):
         self.advantage_layer.reset_noise()
         self.value_hidden_layer.reset_noise()
         self.value_layer.reset_noise()
+
+    def to(self, device):
+        self.device = device
+        self.support.to(device)
+        return super(DQN, self).to(device)
+
+
