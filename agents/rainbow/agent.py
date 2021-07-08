@@ -346,9 +346,9 @@ class RainbowAgent(Agent):
             )
 
             proj_dist = torch.zeros(next_dist.size(), device=self.device)
-            #proj_dist.view(-1).index_add_(
-            #    0, (l + offset).view(-1), (next_dist * (u.float() - b)).view(-1)
-            #)
+            proj_dist.view(-1).index_add_(
+                0, (l + offset).view(-1), (next_dist * (u.float() - b)).view(-1)
+            )
             #proj_dist.view(-1).index_add_(
             #    0, (u + offset).view(-1), (next_dist * (b - l.float())).view(-1)
             #)
