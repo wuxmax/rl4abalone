@@ -349,13 +349,8 @@ class RainbowAgent(Agent):
             proj_dist.view(-1).index_add_(
                 0, (l + offset).view(-1), (next_dist * (u.float() - b)).view(-1)
             )
-            print("---------------------- DQN Loss variables ----------------------")
-            print(f"u: {u.size()} - {u}\n"
-                  f"offset: {offset.size()} - {offset}\n"
-                  f"next_dist: {next_dist.size()} - {next_dist}\n"
-                  f"b: {b.size()} - {b}\n"
-                  f"l: {l.size()} - {l}\n")
-            print("----------------------------------------------------------------")
+            if torch.max(u) > 50:
+                print(f"MAYDAY MAYDAY: u is {u}\n")
             proj_dist.view(-1).index_add_(
                 0, (u + offset).view(-1), (next_dist * (b - l.float())).view(-1)
             )
@@ -371,14 +366,13 @@ class RainbowAgent(Agent):
         self.dqn_target.load_state_dict(self.dqn.state_dict())
 
     def _add_custom_transition(self, transition, reward=None):
-        if reward:
-            if reward < 0:
-                print(transition)
         if not self.is_test:
             if reward:
                 self.transition = transition[:2] + [reward] + transition[3:]
             else:
                 self.transition = transition
+                if transition[3] != 0:
+                    print(transition)
 
             # N-step transition
             if self.use_n_step:
