@@ -28,9 +28,6 @@ class NoisyLinear(nn.Module):
         """Initialization."""
         super(NoisyLinear, self).__init__()
 
-        # get device (not fully exhaustive, my lead to errors)
-        self.device = next(self.parameters()).device
-
         self.in_features = in_features
         self.out_features = out_features
         self.std_init = std_init
@@ -87,7 +84,10 @@ class NoisyLinear(nn.Module):
     # @staticmethod
     def scale_noise(self, size: int) -> torch.Tensor:
         """Set scale to make noise (factorized gaussian noise)."""
-        x = torch.empty(size, device=self.device).normal_()
+        # get device (not fully exhaustive, my lead to errors)
+        device = next(self.parameters()).device
+
+        x = torch.empty(size, device=device).normal_()
         # x = torch.randn(size)
 
         return x.sign().mul(x.abs().sqrt())
