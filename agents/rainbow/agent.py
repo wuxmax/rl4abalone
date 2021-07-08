@@ -350,11 +350,11 @@ class RainbowAgent(Agent):
                 0, (l + offset).view(-1), (next_dist * (u.float() - b)).view(-1)
             )
             if torch.min(reward) != 0:
-                print(f"u: {u}"
-                      f"offset: {offset}"
-                      f"next_dist: {next_dist}"
-                      f"b: {b}"
-                      f"l: {l}")
+                print(f"u: {u.size()} - {u}\n"
+                      f"offset: {offset.size()} - {offset}\n"
+                      f"next_dist: {next_dist.size()} - {next_dist}\n"
+                      f"b: {b.size()} - {b}\n"
+                      f"l: {l.size()} - {l}\n")
             proj_dist.view(-1).index_add_(
                 0, (u + offset).view(-1), (next_dist * (b - l.float())).view(-1)
             )
