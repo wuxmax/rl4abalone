@@ -371,7 +371,7 @@ class RainbowAgent(Agent):
                 self.transition = transition[:2] + [reward] + transition[3:]
             else:
                 self.transition = transition
-                if transition[3] != 0:
+                if transition[2] != 0:
                     print(transition)
 
             # N-step transition
