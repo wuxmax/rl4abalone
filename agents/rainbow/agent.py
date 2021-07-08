@@ -41,9 +41,9 @@ class RainbowAgent(Agent):
     def __init__(
             self,
             env: gym.Env,
-            memory_size: int,
-            batch_size: int,
-            target_update: int,
+            memory_size: int = 10000,
+            target_update: int = 100,
+            batch_size: int = 32,
             gamma: float = 0.99,
             hidden_dim: int = 512,
             # PER parameters
@@ -51,7 +51,7 @@ class RainbowAgent(Agent):
             beta: float = 0.4,
             prior_eps: float = 1e-6,
             # Epsilon-greedy parameters
-            epsilon_decay: float = 1 / 2000,  # taken from RIAYN | 250K frames in RP
+            epsilon_decay: float = 1 / 1000,  # 1/2000 in RIAYN | 250K frames in RP
             max_epsilon: float = 1.0,
             min_epsilon: float = 0.01,
             # Categorical DQN parameters
@@ -59,9 +59,12 @@ class RainbowAgent(Agent):
             # N-step Learning
             n_step: int = 3,
             # Training warmup
-            warmup_period: int = 1000,
+            warmup_period: int = 2000,
             # Toggle rainbow features
-            feature_conf: RainbowConfig = RainbowConfig()
+            feature_conf: RainbowConfig = RainbowConfig(),
+            # Agent saving
+            save_interval: int = 8000,  # if <=0 -> no saving
+            save_path: str = "rainbow-agent.pth"
     ):
         """Initialization.
 
@@ -152,6 +155,10 @@ class RainbowAgent(Agent):
         # training warmup
         self.warmup_period = warmup_period
 
+        # agent saving
+        self.save_interval = save_interval
+        self.save_path = save_path
+
     def _get_dqn_action(self, state: np.ndarray):
         action_probs = self.dqn(torch.FloatTensor(state).to(self.device)).detach().cpu().numpy()
         if action_probs.min() < 0:
@@ -183,7 +190,7 @@ class RainbowAgent(Agent):
         next_state = cvst(next_state, self.env.current_player)
 
         if not self.is_test:
-            self.add_custom_transition(self.transition + [reward, next_state, done])
+            self._add_custom_transition(self.transition + [reward, next_state, done])
 
         return next_state, reward, done, info
 
@@ -260,10 +267,10 @@ class RainbowAgent(Agent):
             else:
                 score_black += reward
 
-            score_black, score_white = self.handle_trigger_states(score_black=score_black, score_white=score_white,
-                                                                  reward=reward, info=info,
-                                                                  trigger_states=self.trigger_states,
-                                                                  last_opposing_player_transition=
+            score_black, score_white = self._handle_trigger_states(score_black=score_black, score_white=score_white,
+                                                                   reward=reward, info=info,
+                                                                   trigger_states=self.trigger_states,
+                                                                   last_opposing_player_transition=
                                                                   last_opposing_player_transition)
 
             last_opposing_player_transition = self.transition
@@ -297,6 +304,12 @@ class RainbowAgent(Agent):
             # plotting
             if turn_total_idx % plotting_interval == 0:
                 _plot(turn_total_idx, scores, losses)
+
+            # saving
+            if self.save_interval > 0:
+                turns_after_warmup = turn_total_idx - self.warmup_period
+                if turns_after_warmup > 0 and turns_after_warmup % self.save_interval == 0:
+                    self._save()
 
         self.env.close()
 
@@ -351,23 +364,7 @@ class RainbowAgent(Agent):
         """Hard update: target <- local."""
         self.dqn_target.load_state_dict(self.dqn.state_dict())
 
-    def reset_torch_device(self):
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
-        print(f"Resetting torch devices to {self.device}...")
-        self.support.to(self.device)
-        self.dqn.to(self.device)
-        self.dqn_target.to(self.device)
-
-        if torch.cuda.is_available():
-            for state in self.optimizer.state.values():
-                for k, v in state.items():
-                    if isinstance(v, torch.Tensor):
-                        state[k] = v.cuda()
-        print(f"Done!")
-
-    def add_custom_transition(self, transition, reward=None):
+    def _add_custom_transition(self, transition, reward=None):
         if not self.is_test:
             if reward:
                 self.transition = transition[:2] + [reward] + transition[3:]
@@ -385,8 +382,8 @@ class RainbowAgent(Agent):
             if one_step_transition:
                 self.memory.store(*one_step_transition)
 
-    def handle_trigger_states(self, score_black: int, score_white: int, reward: int, info: Dict,
-                              trigger_states: List, last_opposing_player_transition):
+    def _handle_trigger_states(self, score_black: int, score_white: int, reward: int, info: Dict,
+                               trigger_states: List, last_opposing_player_transition):
         for move in trigger_states:
             if str(info['move_type']) == move:
                 # score update depending on negative reward
@@ -394,7 +391,7 @@ class RainbowAgent(Agent):
                 score_white -= reward if info['player_name'] == 'black' else 0
 
                 # saving the negative reward from defeat into replay buffer
-                self.add_custom_transition(last_opposing_player_transition, reward=-reward)
+                self._add_custom_transition(last_opposing_player_transition, reward=-reward)
 
                 # print information about the triggering move
                 if str(info['move_type']) == "winner":
@@ -406,3 +403,25 @@ class RainbowAgent(Agent):
                           f" | reward={reward: >4}")
 
         return score_black, score_white
+
+    def _save(self):
+        with open(self.save_path, "wb") as f:
+            torch.save(self, f)
+
+        print("Agent successfully saved.")
+
+    def reset_torch_device(self):
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+        print(f"Resetting torch devices to {self.device}...")
+        self.support.to(self.device)
+        self.dqn.to(self.device)
+        self.dqn_target.to(self.device)
+
+        if torch.cuda.is_available():
+            for state in self.optimizer.state.values():
+                for k, v in state.items():
+                    if isinstance(v, torch.Tensor):
+                        state[k] = v.cuda()
+        print(f"Done!")
