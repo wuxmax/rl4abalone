@@ -364,8 +364,9 @@ class RainbowAgent(Agent):
         self.dqn_target.load_state_dict(self.dqn.state_dict())
 
     def _add_custom_transition(self, transition, reward=None):
-        if reward < 0:
-            print(transition)
+        if reward:
+            if reward  < 0:
+                print(transition)
         if not self.is_test:
             if reward:
                 self.transition = transition[:2] + [reward] + transition[3:]
