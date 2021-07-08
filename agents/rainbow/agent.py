@@ -333,8 +333,8 @@ class RainbowAgent(Agent):
             t_z = reward + (1 - done) * gamma * self.support.to(self.device)
             t_z = t_z.clamp(min=self.v_min, max=self.v_max)
             b = (t_z - self.v_min) / delta_z
-            l = b.floor().long()
-            u = b.ceil().long()
+            l = b.floor().clamp(min=0, max=self.atom_size-1).long()
+            u = b.ceil().clamp(min=0, max=self.atom_size-1).long()
 
             offset = (
                 torch.linspace(
