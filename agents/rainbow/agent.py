@@ -351,6 +351,8 @@ class RainbowAgent(Agent):
             )
             if torch.max(u) > 50:
                 print(f"MAYDAY MAYDAY: u is {u}\n")
+                print(f"l is {l}\n")
+                print(f"b is {b}\n")
             proj_dist.view(-1).index_add_(
                 0, (u + offset).view(-1), (next_dist * (b - l.float())).view(-1)
             )
