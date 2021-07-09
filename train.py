@@ -10,7 +10,7 @@ from utils import set_seeds
 
 
 AGENT_FILE_PATH: str = "trained-agents/rainbow-agent_test.pth"
-LOAD_FROM_FILE: bool = True
+LOAD_FROM_FILE: bool = False
 MAX_TURNS: int = 400
 
 
@@ -20,7 +20,7 @@ env = AbaloneEnv(max_turns=MAX_TURNS)
 SEED = 12
 set_seeds(SEED, env)
 
-num_turns_total = 10  # 150000 = ~7h, 214800 ~10h
+num_turns_total = 100  # 150000 = ~7h, 214800 ~10h
 save_interval = 1
 warmup_period = 0
 

@@ -60,6 +60,8 @@ class RainbowAgent(Agent):
             n_step: int = 3,
             # Training warmup
             warmup_period: int = 2000,
+            # Training interval
+            training_interval: int = 8,
             # Toggle rainbow features
             feature_conf: RainbowConfig = RainbowConfig(),
             # Agent saving
@@ -81,6 +83,18 @@ class RainbowAgent(Agent):
             atom_size (int): the unit number of support
             n_step (int): step number to calculate n-step td error
         """
+        # check that memory size greater or equal to warmup period
+        try:
+            assert memory_size >= warmup_period
+        except AssertionError:
+            print(f"Memory size must be equal or greater than warmup period!")
+
+        # check that memory size greater or equal to warmup period
+        try:
+            assert batch_size >= training_interval
+        except AssertionError:
+            print(f"Batch size must be equal or greater than training interval!")
+
         super().__init__(env)
 
         self.feature_conf = feature_conf
@@ -154,6 +168,9 @@ class RainbowAgent(Agent):
 
         # training warmup
         self.warmup_period = warmup_period
+
+        # training interval
+        self.training_interval = training_interval
 
         # agent saving
         self.save_interval = save_interval
@@ -290,8 +307,13 @@ class RainbowAgent(Agent):
                 score_black = 0
                 score_white = 0
 
-            # if training is ready
-            if len(self.memory) >= self.batch_size and len(self.memory) >= self.warmup_period:
+            # check if it is time to train
+            # one full batch, warmup period over, training interval reached
+            num_transitions_recorded = len(self.memory)
+            if (num_transitions_recorded >= self.warmup_period
+                    and num_transitions_recorded % self.training_interval == 0
+                    and num_transitions_recorded >= self.batch_size):
+
                 loss = self.update_model()
                 losses.append(loss)
                 update_cnt += 1
@@ -308,7 +330,9 @@ class RainbowAgent(Agent):
             if self.save_interval > 0:
                 turns_after_warmup = turn_total_idx - self.warmup_period
                 if turns_after_warmup > 0 and turns_after_warmup % self.save_interval == 0:
-                    self._save()
+                    version_str = '_'.join(['', str(turn_total_idx)])
+
+                    self.save(version_str)
 
         self.env.close()
 
@@ -403,8 +427,11 @@ class RainbowAgent(Agent):
 
         return score_black, score_white
 
-    def _save(self):
-        with open(self.save_path, "wb") as f:
+    def save(self, version_marker: str = ""):
+        file_suffix_index = self.save_path.index('.')
+        file_path = self.save_path[:file_suffix_index] + version_marker + self.save_path[file_suffix_index:]
+
+        with open(file_path, "wb") as f:
             torch.save(self, f)
 
         print("Agent successfully saved.")

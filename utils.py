@@ -23,7 +23,7 @@ def cvst(state: np.ndarray, current_player: int = 0) -> np.ndarray:
     white[white > 0] = -1
     white[white == 0] = 1
     white[white < 1] = 0
-    current_player_layer = np.zeros(121, dtype="int64") if current_player is 0 else np.ones(121, dtype="int64")
+    current_player_layer = np.zeros(121, dtype="int64") if current_player == 0 else np.ones(121, dtype="int64")
     return np.concatenate((black, white, current_player_layer), axis=0)
 
 
