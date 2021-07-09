@@ -311,7 +311,7 @@ class RainbowAgent(Agent):
             # one full batch, warmup period over, training interval reached
             num_transitions_recorded = len(self.memory)
             if (num_transitions_recorded >= self.warmup_period
-                    and num_transitions_recorded % self.training_interval == 0
+                    and turn_total_idx % self.training_interval == 0
                     and num_transitions_recorded >= self.batch_size):
 
                 loss = self.update_model()
