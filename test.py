@@ -128,10 +128,9 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
             state, score_white, score_black, done = test_step(agent=turn_player, state=state, score_white=score_white,
                                                               score_black=score_black, enable_gui=enable_gui)
 
-        print(f"game ended! scores: {score_white}, {score_black}")
         if score_white > score_black:
             score[0] += 1
-        elif score_black < score_white:
+        elif score_black > score_white:
             score[1] += 1
         spinner.stop()
 
