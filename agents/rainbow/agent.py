@@ -440,7 +440,7 @@ class RainbowAgent(Agent):
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        print(f"Resetting torch devices to {self.device}...")
+
         self.support.to(self.device)
         self.dqn.to(self.device)
         self.dqn_target.to(self.device)
@@ -450,4 +450,3 @@ class RainbowAgent(Agent):
                 for k, v in state.items():
                     if isinstance(v, torch.Tensor):
                         state[k] = v.cuda()
-        print(f"Done!")
