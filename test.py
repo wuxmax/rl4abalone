@@ -12,8 +12,8 @@ from agents.random_agent import RandomAgent
 from agents.agent import Agent
 from utils import set_seeds, cvst
 
-# AGENT_FILE_PATHS: List = ["rainbow-agent.pth"]
-AGENT_FILE_PATHS: List = [None]
+AGENT_FILE_PATHS: List = ["trained-agents/rainbow-agent_12_16.pth", "random"]
+# AGENT_FILE_PATHS: List = [None]
 # GAMES_PER_BENCHMARK = 100
 GAMES_PER_BENCHMARK = 1
 MAX_TURNS: int = 400
@@ -165,5 +165,5 @@ def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int
 
 if __name__ == "__main__":
     # self_play(AGENT_FILE_PATHS[0], MAX_TURNS, ENABLE_GUI, EPISODES)
-    # agent_vs_agent(AGENT_FILE_PATHS[0], AGENT_FILE_PATHS[1], MAX_TURNS, ENABLE_GUI, EPISODES)
-    benchmark_agents(AGENT_FILE_PATHS, GAMES_PER_BENCHMARK, MAX_TURNS, ENABLE_GUI, RESULTS_FILE)
+    agent_vs_agent(AGENT_FILE_PATHS[0], AGENT_FILE_PATHS[1], MAX_TURNS, ENABLE_GUI, GAMES_PER_BENCHMARK)
+    # benchmark_agents(AGENT_FILE_PATHS, GAMES_PER_BENCHMARK, MAX_TURNS, ENABLE_GUI, RESULTS_FILE)

@@ -31,8 +31,8 @@ class RandomAgent(Agent):
 
         return rng.choice(possible_moves)
 
-    def step(self, action: Tuple, turn: int) -> Tuple[np.ndarray, np.float64, bool, Dict]:
+    def step(self, action: Tuple) -> Tuple[np.ndarray, np.float64, bool, Dict]:
         """Take an action and return the response of the env, where the state is already in 121x3 representation"""
         next_state, reward, done, info = self.env.step(action)
-        next_state = cvst(next_state, turn+1)
+        next_state = cvst(next_state, self.env.current_player)
         return next_state, reward, done, info
