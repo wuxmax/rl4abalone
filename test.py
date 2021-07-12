@@ -130,6 +130,9 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
             score[(env.current_player + 1) % 2] += 1
         spinner.stop()
 
+    del agent1, agent2
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     env.close()
     return score[0], score[1]
 
