@@ -58,12 +58,11 @@ def print_game_info(info: Dict, reward: int, score_white: int, score_black: int)
               f"The looser scored {score_looser}!")
 
 
-def test_step(agent: Agent, state: np.ndarray, turn: int, score_white: int, score_black: int, enable_gui: bool,
-              env: AbaloneEnv):
+def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: int, enable_gui: bool, env: AbaloneEnv):
     action = agent.select_action(state)
-    next_state, reward, done, info = agent.step(action, turn)
+    next_state, reward, done, info = agent.step(action)
 
-    if turn % 2 == 0:
+    if info["player"] == 0:
         score_white += reward
     else:
         score_black += reward
@@ -73,7 +72,7 @@ def test_step(agent: Agent, state: np.ndarray, turn: int, score_white: int, scor
     if enable_gui:
         env.render(fps=1)
 
-    return next_state, score_white, score_black, turn + 1, done
+    return next_state, score_white, score_black, done
 
 
 def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
@@ -88,15 +87,13 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
         state = cvst(env.reset(random_player=False), 0)
         score_black = 0
         score_white = 0
-        turn = 0
         done = False
 
         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
         while not done:
-            state, score_white, score_black, turn, done = test_step(agent=agent, state=state, turn=turn,
-                                                                    score_white=score_white, score_black=score_black,
-                                                                    enable_gui=enable_gui, env=env)
+            state, score_white, score_black, done = test_step(agent=agent, state=state,score_white=score_white,
+                                                              score_black=score_black, enable_gui=enable_gui, env=env)
 
         spinner.stop()
 
@@ -120,18 +117,16 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
         state = cvst(env.reset(random_player=False), 0)
         score_black = 0
         score_white = 0
-        turn = 0
         done = False
 
         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
         while not done:
-            turn_player = agent1 if turn % 2 == 0 else agent2
-            state, score_white, score_black, turn, done = test_step(agent=turn_player, state=state, turn=turn,
-                                                                    score_white=score_white, score_black=score_black,
-                                                                    enable_gui=enable_gui, env=env)
+            turn_player = agent1 if env.current_player % 2 == 0 else agent2
+            state, score_white, score_black, done = test_step(agent=turn_player, state=state, score_white=score_white,
+                                                              score_black=score_black, enable_gui=enable_gui, env=env)
 
-        if max(score_white, score_black) > 5:
+        if env.game.game_over:
             score[(env.current_player + 1) % 2] += 1
         spinner.stop()
 
@@ -158,7 +153,7 @@ def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int
                                        max_turns=max_turns, enable_gui=enable_gui, episodes=num_games))
         scores.append(score)
 
-    df = pd.DataFrame(scores, colums=shortened_agent_path_list, index=shortened_agent_path_list)
+    df = pd.DataFrame(scores, columns=shortened_agent_path_list, index=shortened_agent_path_list)
     df.to_excel(results_file)
 
 
