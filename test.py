@@ -108,8 +108,10 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     env = AbaloneEnv(max_turns=max_turns)
     set_seeds(RANDOM_SEED, env)
 
+    spinner.start(text="Loading agents...")
     agent1 = load_agent(white_agent_file_path, env)
     agent2 = load_agent(black_agent_file_path, env)
+    spinner.stop()
     agent1.is_test = True
     agent2.is_test = True
     score = [0, 0]
@@ -129,7 +131,8 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
                                                                     score_white=score_white, score_black=score_black,
                                                                     enable_gui=enable_gui, env=env)
 
-        score[(env.current_player + 1) % 2] += 1
+        if max(score_white, score_black) > 5:
+            score[(env.current_player + 1) % 2] += 1
         spinner.stop()
 
     env.close()
