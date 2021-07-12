@@ -149,7 +149,7 @@ def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int
     for idx, agent_path_1 in enumerate(agent_path_list):
         score = []
         for idx_, agent_path_2 in enumerate(agent_path_list):
-            if idx < idx_:
+            if idx > idx_:
                 score.append(scores[idx][idx_][::-1])
             elif idx == idx_:
                 score.append("-")
