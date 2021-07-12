@@ -107,9 +107,9 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     env = AbaloneEnv(max_turns=max_turns)
     set_seeds(RANDOM_SEED, env)
 
-    print("loading first agent...")
+    print(f"loading .../{white_agent_file_path.split('/')[-1]}")
     agent1 = load_agent(white_agent_file_path, env)
-    print("loading second agent...")
+    print(f"loading .../{black_agent_file_path.split('/')[-1]}")
     agent2 = load_agent(black_agent_file_path, env)
     agent1.is_test = True
     agent2.is_test = True
@@ -128,6 +128,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
             state, score_white, score_black, done = test_step(agent=turn_player, state=state, score_white=score_white,
                                                               score_black=score_black, enable_gui=enable_gui)
 
+        print(f"game ended! scores: {score_white}, {score_black}")
         if score_white > score_black:
             score[0] += 1
         elif score_black < score_white:
