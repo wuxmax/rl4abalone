@@ -126,8 +126,10 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
             state, score_white, score_black, done = test_step(agent=turn_player, state=state, score_white=score_white,
                                                               score_black=score_black, enable_gui=enable_gui, env=env)
 
-        if env.game.game_over:
-            score[(env.current_player + 1) % 2] += 1
+        if score_white > score_black:
+            score[0] += 1
+        if score_black < score_white:
+            score[1] += 1
         spinner.stop()
 
     del agent1, agent2
@@ -148,7 +150,7 @@ def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int
         score = []
         for idx_, agent_path_2 in enumerate(agent_path_list):
             if idx > idx_:
-                score.append(scores[idx][idx_][::-1])
+                score.append(scores[idx_][idx][::-1])
             elif idx == idx_:
                 score.append("-")
             else:
