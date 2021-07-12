@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+import pandas as pd
 import torch
 import numpy as np
 from halo import Halo
@@ -103,7 +104,7 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
 
 
 def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_turns: int = 400,
-                   enable_gui: bool = False, episodes: int = 1, results_file: str = None):
+                   enable_gui: bool = False, episodes: int = 1):
     env = AbaloneEnv(max_turns=max_turns)
     set_seeds(RANDOM_SEED, env)
 
@@ -111,6 +112,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     agent2 = load_agent(black_agent_file_path, env)
     agent1.is_test = True
     agent2.is_test = True
+    score = [0, 0]
 
     for episode in range(episodes):
         state = cvst(env.reset(random_player=False), 0)
@@ -127,23 +129,35 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
                                                                     score_white=score_white, score_black=score_black,
                                                                     enable_gui=enable_gui, env=env)
 
+        score[(env.current_player + 1) % 2] += 1
         spinner.stop()
 
-        if results_file:
-            pass
-            # write results
-
     env.close()
+    return score[0], score[1]
 
 
 def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int = 400, enable_gui: bool = False,
                      results_file: str = None):
     env = AbaloneEnv(max_turns=max_turns)
     set_seeds(RANDOM_SEED, env)
+    shortened_agent_path_list = [agent_path.split('/')[-1] for agent_path in agent_path_list]
+    scores = []
 
-    for agent_path in agent_path_list:
-        agent_vs_agent(white_agent_file_path=agent_path, black_agent_file_path="random", max_turns=max_turns,
-                       enable_gui=enable_gui, episodes=num_games, results_file=results_file)
+    for idx, agent_path_1 in enumerate(agent_path_list):
+        score = []
+        for idx_, agent_path_2 in enumerate(agent_path_list):
+            if idx < idx_:
+                score.append(scores[idx][idx_][::-1])
+            elif idx == idx_:
+                score.append("-")
+            else:
+                score.append(agent_vs_agent(white_agent_file_path=agent_path_1, black_agent_file_path=agent_path_2,
+                                       max_turns=max_turns, enable_gui=enable_gui, episodes=num_games))
+        scores.append(score)
+
+    df = pd.DataFrame(scores, colums=shortened_agent_path_list, index=shortened_agent_path_list)
+    df.to_excel(results_file)
+
 
 
 if __name__ == "__main__":
