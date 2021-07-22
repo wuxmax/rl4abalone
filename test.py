@@ -163,7 +163,6 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
 
 def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int = 400, enable_gui: bool = False,
                      results_file: str = None):
-    shortened_agent_path_list = [agent_path.split('/')[-1] for agent_path in agent_path_list]
     scores = []
 
     for idx, agent_path_1 in enumerate(agent_path_list):
@@ -179,6 +178,7 @@ def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int
                 score.append((score_agent_1, score_agent_2))
         scores.append(score)
 
+    shortened_agent_path_list = [agent_path.split('/')[-1] for agent_path in agent_path_list]
     df = pd.DataFrame(scores, columns=shortened_agent_path_list, index=shortened_agent_path_list)
     df.to_excel(results_file)
 
