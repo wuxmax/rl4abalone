@@ -14,6 +14,8 @@ def _plot(
         frame_idx: int,
         scores: List[float],
         losses: List[torch.Tensor],
+        unique_actions_white: List,
+        unique_actions_black: List
 ):
     """Plot the training progresses."""
     if IN_COLAB:
@@ -25,6 +27,10 @@ def _plot(
     plt.subplot(132)
     plt.title('loss')
     plt.plot(losses)
+    plt.subplot(133)
+    plt.title('unique actions in 100 actions')
+    plt.plot(unique_actions_white)
+    plt.plot(unique_actions_black)
     # axes = plt.gca()
     # axes.set_xlim([max(0, len(losses) - 300), len(losses)])
     # if len(losses) > 100:

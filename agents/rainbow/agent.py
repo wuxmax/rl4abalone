@@ -11,7 +11,7 @@ from .config import RainbowConfig
 from .buffer import ReplayBuffer, PrioritizedReplayBuffer
 from .network import DQN
 from .utils import _plot
-from utils import cvst, cvact, get_atom_distribution_borders
+from utils import cvst, cvact, get_atom_distribution_borders, track_actions
 from agents.agent import Agent
 
 
@@ -273,6 +273,10 @@ class RainbowAgent(Agent):
         update_cnt = 0
         losses = []
         scores = []
+        last_actions_white = []
+        last_actions_black = []
+        unique_actions_white = []
+        unique_actions_black = []
         score_black = 0
         score_white = 0
         last_opposing_player_transition = list()
@@ -284,8 +288,12 @@ class RainbowAgent(Agent):
 
             if info["player"] == 0:
                 score_white += reward
+                last_actions_white, unique_actions_white = track_actions(action=action, last_actions=last_actions_white,
+                                                                         unique_actions=unique_actions_white)
             else:
                 score_black += reward
+                last_actions_black, unique_actions_black = track_actions(action=action, last_actions=last_actions_black,
+                                                                         unique_actions=unique_actions_black)
 
             score_black, score_white = self._handle_trigger_states(score_black=score_black, score_white=score_white,
                                                                    reward=reward, info=info,
@@ -328,7 +336,7 @@ class RainbowAgent(Agent):
 
             # plotting
             if turn_total_idx % plotting_interval == 0:
-                _plot(turn_total_idx, scores, losses)
+                _plot(turn_total_idx, scores, losses, unique_actions_white, unique_actions_black)
 
             # saving
             if self.save_interval > 0:
@@ -454,3 +462,4 @@ class RainbowAgent(Agent):
                 for k, v in state.items():
                     if isinstance(v, torch.Tensor):
                         state[k] = v.cuda()
+

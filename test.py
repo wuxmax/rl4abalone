@@ -10,7 +10,7 @@ from agents.rainbow.agent import RainbowAgent
 from agents.rainbow.config import RainbowConfig
 from agents.random_agent import RandomAgent
 from agents.agent import Agent
-from utils import set_seeds, cvst
+from utils import cvst, set_seeds, track_actions
 
 AGENT_FILE_PATHS: List = ["trained-agents/rainbow-agent_12_16.pth", "random"]
 # AGENT_FILE_PATHS: List = [None]
@@ -44,7 +44,10 @@ def load_agent(path: str, env: AbaloneEnv):
     return agent
 
 
-def print_game_info(info: Dict, reward: int, score_white: int, score_black: int):
+def print_game_info(info: Dict, reward: int, score_white: int, score_black: int, unique_actions: List):
+    if unique_actions:
+        print(f"In the last 100 turns {info['player_name']} has made {unique_actions[0]} unique turns")
+
     if str(info['move_type']) == "ejected":
         print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} "
               f"| reward={reward: >4}")
@@ -58,23 +61,28 @@ def print_game_info(info: Dict, reward: int, score_white: int, score_black: int)
               f"The looser scored {score_looser}!")
 
 
-def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: int, enable_gui: bool):
+def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: int, enable_gui: bool,
+              last_actions: (List, List)):
+
     action = agent.select_action(state)
     next_state, reward, done, info = agent.step(action)
 
     if info["player"] == 0:
         score_white += reward
         score_black -= reward
+        last_actions[0], unique_actions = track_actions(action, last_actions[0])
     else:
         score_black += reward
         score_white -= reward
+        last_actions[1], unique_actions = track_actions(action, last_actions[1])
 
-    print_game_info(info=info, reward=reward, score_white=score_white, score_black=score_black)
+    print_game_info(info=info, reward=reward, score_white=score_white, score_black=score_black,
+                    unique_actions=unique_actions)
 
     if enable_gui:
         agent.env.render(fps=1)
 
-    return next_state, score_white, score_black, done
+    return next_state, score_white, score_black, done, last_actions[0], last_actions[1]
 
 
 def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
@@ -85,6 +93,9 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
     agent = load_agent(agent_file_path, env)
     agent.is_test = True
 
+    last_actions_white = []
+    last_actions_black = []
+
     for episode in range(episodes):
         state = cvst(env.reset(random_player=False))
         score_black = 0
@@ -94,8 +105,9 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
         while not done:
-            state, score_white, score_black, done = test_step(agent=agent, state=state,score_white=score_white,
-                                                              score_black=score_black, enable_gui=enable_gui)
+            state, score_white, score_black, done, last_actions_white, last_actions_black =\
+                test_step(agent=agent, state=state, score_white=score_white, score_black=score_black,
+                          enable_gui=enable_gui, last_actions=(last_actions_white, last_actions_black))
 
         spinner.stop()
 
@@ -113,7 +125,10 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     agent2 = load_agent(black_agent_file_path, env)
     agent1.is_test = True
     agent2.is_test = True
+
     score = [0, 0]
+    last_actions_white = []
+    last_actions_black = []
 
     for episode in range(episodes):
         state = cvst(env.reset(random_player=False))
@@ -125,8 +140,9 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
 
         while not done:
             turn_player = agent1 if env.current_player % 2 == 0 else agent2
-            state, score_white, score_black, done = test_step(agent=turn_player, state=state, score_white=score_white,
-                                                              score_black=score_black, enable_gui=enable_gui)
+            state, score_white, score_black, done, last_actions_white, last_actions_black =\
+                test_step(agent=turn_player, state=state, score_white=score_white, score_black=score_black,
+                          enable_gui=enable_gui, last_actions=(last_actions_white, last_actions_black))
 
         if score_white > score_black:
             score[0] += 1

@@ -1,3 +1,5 @@
+from typing import List
+
 import random
 import torch
 
@@ -39,4 +41,13 @@ def get_atom_distribution_borders() -> (float, float):
     """(used for the distributional network implementation)"""
     v_max = float(Reward.method_1(None, "winner") + 6 * Reward.method_1(None, "ejected"))
     return v_max, -v_max
+
+
+def track_actions(action, last_actions: List, unique_actions: List = []):
+    last_actions.append(action)
+    if len(last_actions) == 100:
+        unique_actions.append(len(set(last_actions)))
+        last_actions = []
+    return last_actions, unique_actions
+
 
