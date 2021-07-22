@@ -163,8 +163,6 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
 
 def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int = 400, enable_gui: bool = False,
                      results_file: str = None):
-    env = AbaloneEnv(max_turns=max_turns)
-    set_seeds(RANDOM_SEED, env)
     shortened_agent_path_list = [agent_path.split('/')[-1] for agent_path in agent_path_list]
     scores = []
 
