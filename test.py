@@ -62,7 +62,7 @@ def print_game_info(info: Dict, reward: int, score_white: int, score_black: int,
 
 
 def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: int, enable_gui: bool,
-              last_actions: (List, List)):
+              last_actions_white: List, last_actions_black: List):
 
     action = agent.select_action(state)
     next_state, reward, done, info = agent.step(action)
@@ -70,11 +70,11 @@ def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: in
     if info["player"] == 0:
         score_white += reward
         score_black -= reward
-        last_actions[0], unique_actions = track_actions(action, last_actions[0])
+        last_actions_white, unique_actions = track_actions(action, last_actions_white)
     else:
         score_black += reward
         score_white -= reward
-        last_actions[1], unique_actions = track_actions(action, last_actions[1])
+        last_actions_black, unique_actions = track_actions(action, last_actions_black)
 
     print_game_info(info=info, reward=reward, score_white=score_white, score_black=score_black,
                     unique_actions=unique_actions)
@@ -82,7 +82,7 @@ def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: in
     if enable_gui:
         agent.env.render(fps=1)
 
-    return next_state, score_white, score_black, done, last_actions[0], last_actions[1]
+    return next_state, score_white, score_black, done, last_actions_white, last_actions_black
 
 
 def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
@@ -107,7 +107,8 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
         while not done:
             state, score_white, score_black, done, last_actions_white, last_actions_black =\
                 test_step(agent=agent, state=state, score_white=score_white, score_black=score_black,
-                          enable_gui=enable_gui, last_actions=(last_actions_white, last_actions_black))
+                          enable_gui=enable_gui, last_actions_white=last_actions_white,
+                          last_actions_black=last_actions_black)
 
         spinner.stop()
 
@@ -142,7 +143,8 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
             turn_player = agent1 if env.current_player % 2 == 0 else agent2
             state, score_white, score_black, done, last_actions_white, last_actions_black =\
                 test_step(agent=turn_player, state=state, score_white=score_white, score_black=score_black,
-                          enable_gui=enable_gui, last_actions=(last_actions_white, last_actions_black))
+                          enable_gui=enable_gui, last_actions_white=last_actions_white,
+                          last_actions_black=last_actions_black)
 
         if score_white > score_black:
             score[0] += 1
