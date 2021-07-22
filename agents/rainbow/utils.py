@@ -29,8 +29,8 @@ def _plot(
     plt.plot(losses)
     plt.subplot(133)
     plt.title('unique actions in 100 actions')
-    plt.plot(unique_actions_white)
-    plt.plot(unique_actions_black)
+    plt.plot(unique_actions_white, color="grey")
+    plt.plot(unique_actions_black, color="black")
     # axes = plt.gca()
     # axes.set_xlim([max(0, len(losses) - 300), len(losses)])
     # if len(losses) > 100:
