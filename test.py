@@ -72,13 +72,15 @@ def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: in
         score_black -= reward
         print("whites turn, last actions:")
         print(last_actions_white)
-        last_actions_white, unique_actions = track_actions(action, last_actions_white)
+        last_actions_white, unique_actions = track_actions(action=action, last_actions=last_actions_white,
+                                                           unique_actions=[])
     else:
         score_black += reward
         score_white -= reward
-        print("whites turn, last actions:")
+        print("blacks turn, last actions:")
         print(last_actions_black)
-        last_actions_black, unique_actions = track_actions(action, last_actions_black)
+        last_actions_black, unique_actions = track_actions(action=action, last_actions=last_actions_black,
+                                                           unique_actions=[])
 
     print("got following unique_actions:")
     print(unique_actions)

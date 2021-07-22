@@ -43,7 +43,7 @@ def get_atom_distribution_borders() -> (float, float):
     return v_max, -v_max
 
 
-def track_actions(action, last_actions: List, unique_actions: List = []):
+def track_actions(action, last_actions: List, unique_actions: List):
     last_actions.append(action)
     if len(last_actions) == 100:
         unique_actions.append(len(set(last_actions)))
