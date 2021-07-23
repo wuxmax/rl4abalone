@@ -200,6 +200,12 @@ class RainbowAgent(Agent):
               f" Num legal actions. {num_legal_actions} | Is maximum masked? {is_maximum_masked}")
         print(f" Mean actions probs: {mean_action_probs} |"
               f" Mean legal probs: {mean_legal_probs} | Mean illegal probs: {mean_illegal_probs}")
+        print(f" Max action prob: {action_probs.max()} | Max legal prob {action_probs_masked.max()} |"
+              f" Max illegal prob {action_probs_masked_inverse.max()}")
+        action_probs_masked_min = action_probs[np.nonzero(action_probs_masked)].min()
+        action_probs_masked_inverse_min = action_probs[np.nonzero(action_probs_masked_inverse)].min()
+        print(f" Min action prob: {action_probs.min()} | Min legal prob {action_probs_masked_min} |"
+              f" Min illegal prob {action_probs_masked_inverse_min}")
 
         return action_probs_masked.argmax()
 
