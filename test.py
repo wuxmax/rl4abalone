@@ -12,13 +12,13 @@ from agents.random_agent import RandomAgent
 from agents.agent import Agent
 from utils import cvst, set_seeds, track_actions
 
-AGENT_FILE_PATHS: List = ["trained-agents/rainbow-agent_12_16.pth", "random"]
+AGENT_FILE_PATHS: List = ["trained-agents/rainbow-agent_1.pth", "random"]
 # AGENT_FILE_PATHS: List = [None]
 # GAMES_PER_BENCHMARK = 100
-GAMES_PER_BENCHMARK = 1
+GAMES_PER_BENCHMARK = 10
 MAX_TURNS: int = 400
-ENABLE_GUI: bool = True
-RESULTS_FILE = "results.csv"
+ENABLE_GUI: bool = False
+RESULTS_FILE = "results.xlsx"
 RANDOM_SEED = 777
 
 spinner = Halo(spinner='dots')
@@ -142,7 +142,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
         while not done:
-            turn_player = agent1 if env.current_player % 2 == 0 else agent2
+            turn_player = agent1 if env.current_player == 0 else agent2
             state, score_white, score_black, done, last_actions_white, last_actions_black =\
                 test_step(agent=turn_player, state=state, score_white=score_white, score_black=score_black,
                           enable_gui=enable_gui, last_actions_white=last_actions_white,
@@ -183,8 +183,7 @@ def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int
     df.to_excel(results_file)
 
 
-
 if __name__ == "__main__":
     # self_play(AGENT_FILE_PATHS[0], MAX_TURNS, ENABLE_GUI, EPISODES)
-    agent_vs_agent(AGENT_FILE_PATHS[0], AGENT_FILE_PATHS[1], MAX_TURNS, ENABLE_GUI, GAMES_PER_BENCHMARK)
-    # benchmark_agents(AGENT_FILE_PATHS, GAMES_PER_BENCHMARK, MAX_TURNS, ENABLE_GUI, RESULTS_FILE)
+    # agent_vs_agent(AGENT_FILE_PATHS[0], AGENT_FILE_PATHS[1], MAX_TURNS, ENABLE_GUI, GAMES_PER_BENCHMARK)
+    benchmark_agents(AGENT_FILE_PATHS, GAMES_PER_BENCHMARK, MAX_TURNS, ENABLE_GUI, RESULTS_FILE)

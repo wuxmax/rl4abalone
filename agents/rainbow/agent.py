@@ -185,6 +185,22 @@ class RainbowAgent(Agent):
         if action_probs.min() < 0:
             action_probs = action_probs - action_probs.min()
         action_probs_masked = action_probs * self.env.get_action_mask()
+
+        # DEBUGGING
+        action_mask = self.env.get_action_mask()
+        num_actions_total = action_mask.shape[0]
+        mean_action_probs = action_probs.mean()
+        num_legal_actions = np.count_nonzero(action_mask)
+        num_illegal_actions = np.count_nonzero(action_mask == 0)
+        is_maximum_masked = action_mask[action_probs.argmax()] == 0
+        mean_legal_probs = action_probs_masked.sum() / np.count_nonzero(action_probs_masked)
+        action_probs_masked_inverse = (1 - action_mask) * action_probs
+        mean_illegal_probs = action_probs_masked_inverse.sum() / np.count_nonzero(action_probs_masked_inverse)
+        print(f" Num actions total: {num_actions_total} | Num illegal actions: {num_illegal_actions} |"
+              f" Num legal actions. {num_legal_actions} | Is maximum masked? {is_maximum_masked}")
+        print(f" Mean actions probs: {mean_action_probs} |"
+              f" Mean legal probs: {mean_legal_probs} | Mean illegal probs: {mean_illegal_probs}")
+
         return action_probs_masked.argmax()
 
     # expects an 'get_action_mask' function as provided by gym_abalone
