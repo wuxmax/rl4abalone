@@ -226,7 +226,7 @@ class RainbowAgent(Agent):
 
         if not self.is_test:
             if self.current_curiosity is not None:
-                if np.any(np.all(next_state == self.seen_states, axis=1)):
+                if not np.any(np.all(next_state == self.seen_states, axis=1)):
                     # check for existence of the next state and set custom reward
                     # if it was never seen before and curiosity has not decayed too low
                     reward = max(self.current_curiosity, reward)
