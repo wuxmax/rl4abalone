@@ -51,3 +51,25 @@ def track_actions(action, last_actions: List, unique_actions: List):
     return last_actions, unique_actions
 
 
+def print_action_prob_info(action_probs: np.ndarray, action_mask: np.ndarray):
+    action_probs_masked = action_probs * action_mask
+    num_actions_total = action_mask.shape[0]
+    mean_action_probs = action_probs.mean()
+    num_legal_actions = np.count_nonzero(action_mask)
+    num_illegal_actions = np.count_nonzero(action_mask == 0)
+    is_maximum_masked = action_mask[action_probs.argmax()] == 0
+    mean_legal_probs = action_probs_masked.sum() / np.count_nonzero(action_probs_masked)
+    action_probs_masked_inverse = (1 - action_mask) * action_probs
+    mean_illegal_probs = action_probs_masked_inverse.sum() / np.count_nonzero(action_probs_masked_inverse)
+    print(f" Num actions total: {num_actions_total} | Num illegal actions: {num_illegal_actions} |"
+          f" Num legal actions. {num_legal_actions} | Is maximum masked? {is_maximum_masked}")
+    print(f" Mean actions probs: {mean_action_probs} |"
+          f" Mean legal probs: {mean_legal_probs} | Mean illegal probs: {mean_illegal_probs}")
+    print(f" Max action prob: {action_probs.max()} | Max legal prob {action_probs_masked.max()} |"
+          f" Max illegal prob {action_probs_masked_inverse.max()}")
+    action_probs_masked_min = action_probs[np.nonzero(action_probs_masked)].min()
+    action_probs_masked_inverse_min = action_probs[np.nonzero(action_probs_masked_inverse)].min()
+    print(f" Min action prob: {action_probs.min()} | Min legal prob {action_probs_masked_min} |"
+          f" Min illegal prob {action_probs_masked_inverse_min}")
+
+
