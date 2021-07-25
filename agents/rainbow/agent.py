@@ -346,7 +346,6 @@ class RainbowAgent(Agent):
             # if episode ends
             if done:
                 state = cvst(self.env.reset(random_player=False))
-                self.seen_states = [state] if self.current_curiosity else None
                 scores.append(max(score_black, score_white))
                 score_black = 0
                 score_white = 0
