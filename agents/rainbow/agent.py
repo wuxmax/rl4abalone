@@ -184,7 +184,7 @@ class RainbowAgent(Agent):
         self.current_curiosity = np.float64(curiosity_reward) if curiosity_reward else None
         self.max_curiosity = np.float64(curiosity_reward) if curiosity_reward else None
         self.curiosity_decay = np.float64(curiosity_decay) if curiosity_reward else None
-        self.seen_states = [] if self.current_curiosity else None
+        self.seen_states = np.array([]) if self.current_curiosity else None
 
     def _get_dqn_action(self, state: np.ndarray):
         if self.is_test:
@@ -298,6 +298,7 @@ class RainbowAgent(Agent):
         """Train the agent."""
         self.is_test = False
         state = cvst(self.env.reset(random_player=False))
+        self.seen_states.append(state)
         update_cnt = 0
         losses = []
         scores = []
