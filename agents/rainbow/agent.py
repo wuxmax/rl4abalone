@@ -55,6 +55,8 @@ class RainbowAgent(Agent):
             epsilon_decay: float = 1 / 1000,  # 1/2000 in RIAYN | 250K frames in RP
             max_epsilon: float = 1.0,
             min_epsilon: float = 0.01,
+            # Noisy Net parameters
+            std_init: float = 0.5,
             # Categorical DQN parameters
             atom_size: int = 51,
             # N-step Learning
@@ -153,10 +155,10 @@ class RainbowAgent(Agent):
 
         # networks: dqn, dqn_target
         self.dqn = DQN(
-            obs_dim, action_dim, hidden_dim, self.atom_size, self.support,
+            obs_dim, action_dim, hidden_dim, std_init, self.atom_size, self.support,
             self.feature_conf).to(self.device)
         self.dqn_target = DQN(
-            obs_dim, action_dim, hidden_dim, self.atom_size, self.support,
+            obs_dim, action_dim, hidden_dim, std_init, self.atom_size, self.support,
             self.feature_conf).to(self.device)
         self.dqn_target.load_state_dict(self.dqn.state_dict())
         self.dqn_target.eval()

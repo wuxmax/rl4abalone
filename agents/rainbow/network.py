@@ -99,6 +99,7 @@ class DQN(nn.Module):
             in_dim: int,
             out_dim: int,
             hidden_dim: int,
+            std_init: float,
             atom_size: int,
             support: torch.Tensor,
             feature_conf: RainbowConfig
@@ -109,8 +110,10 @@ class DQN(nn.Module):
         self.feature_conf = feature_conf
         if self.feature_conf.noisy_net:
             deep_linear_class = NoisyLinear
+            deep_linear_kwargs = {'std_init': std_init}
         else:
             deep_linear_class = nn.Linear
+            deep_linear_kwargs = {}
 
         # set device
         self.device = torch.device(
@@ -129,23 +132,23 @@ class DQN(nn.Module):
 
         if self.feature_conf.distributional_net:
             # set advantage layer
-            self.advantage_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
-            self.advantage_layer = deep_linear_class(hidden_dim, out_dim * atom_size)
+            self.advantage_hidden_layer = deep_linear_class(hidden_dim, **deep_linear_kwargs)
+            self.advantage_layer = deep_linear_class(hidden_dim, out_dim * atom_size, *deep_linear_kwargs)
 
             # set value layer
-            self.value_hidden_layer = deep_linear_class(hidden_dim, hidden_dim)
-            self.value_layer = deep_linear_class(hidden_dim, atom_size)
+            self.value_hidden_layer = deep_linear_class(hidden_dim, hidden_dim, *deep_linear_kwargs)
+            self.value_layer = deep_linear_class(hidden_dim, atom_size, *deep_linear_kwargs)
 
         else:
             # set advantage layer
-            self.advantage_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim),
+            self.advantage_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim, *deep_linear_kwargs),
                                                  nn.ReLU(),
-                                                 deep_linear_class(hidden_dim, out_dim))
+                                                 deep_linear_class(hidden_dim, out_dim, *deep_linear_kwargs))
 
             # set value layer
-            self.value_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim),
+            self.value_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim, *deep_linear_kwargs),
                                              nn.ReLU(),
-                                             deep_linear_class(hidden_dim, 1))
+                                             deep_linear_class(hidden_dim, 1, *deep_linear_kwargs))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
