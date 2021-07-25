@@ -351,12 +351,12 @@ class RainbowAgent(Agent):
                 scores.append(max(score_black, score_white))
                 score_black = 0
                 score_white = 0
-                turns_white = 0
-                turns_black = 0
                 unique_actions_white.append(len(set(last_actions_white))/turns_white)
                 unique_actions_black.append(len(set(last_actions_black))/turns_black)
                 last_actions_white = []
                 last_actions_black = []
+                turns_white = 0
+                turns_black = 0
 
             # check if it is time to train
             # one full batch, warmup period over, training interval reached
