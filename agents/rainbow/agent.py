@@ -66,7 +66,9 @@ class RainbowAgent(Agent):
             feature_conf: RainbowConfig = RainbowConfig(),
             # Agent saving
             save_interval: int = 8000,  # if <=0 -> no saving
-            save_path: str = "rainbow-agent.pth"
+            save_path: str = "rainbow-agent.pth",
+            # Curiosity hyperparameter
+            curiosity_reward: int = None
     ):
         """Initialization.
 
@@ -176,6 +178,10 @@ class RainbowAgent(Agent):
         self.save_interval = save_interval
         self.save_path = save_path
 
+        # curiosity
+        self.curiosity_reward = np.float64(curiosity_reward)
+        self.seen_states = [] if self.curiosity_reward else None
+
     def _get_dqn_action(self, state: np.ndarray):
         if self.is_test:
             with torch.no_grad():
@@ -233,6 +239,12 @@ class RainbowAgent(Agent):
         next_state = cvst(next_state, self.env.current_player)
 
         if not self.is_test:
+            # check for existence of the next state and add custom reward if it was never seen before
+            if self.curiosity_reward and next_state not in self.seen_states:
+                self.seen_states.append(next_state)
+                self._add_custom_transition(self.transition + [self.curiosity_reward, next_state, done])
+                return next_state, self.curiosity_reward, done, info
+
             self._add_custom_transition(self.transition + [reward, next_state, done])
 
         return next_state, reward, done, info
@@ -336,6 +348,7 @@ class RainbowAgent(Agent):
 
             # if episode ends
             if done:
+                self.seen_states = [] if self.curiosity_reward else None
                 state = cvst(self.env.reset(random_player=False))
                 scores.append(max(score_black, score_white))
                 score_black = 0
