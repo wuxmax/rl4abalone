@@ -242,7 +242,7 @@ class RainbowAgent(Agent):
         next_state = cvst(next_state, self.env.current_player)
 
         if not self.is_test:
-            if self.current_curiosity:
+            if self.current_curiosity is not None:
                 if next_state not in self.seen_states:
                     # check for existence of the next state and set custom reward
                     # if it was never seen before and curiosity has not decayed too low
