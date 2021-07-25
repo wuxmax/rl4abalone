@@ -301,7 +301,7 @@ class RainbowAgent(Agent):
         """Train the agent."""
         self.is_test = False
         state = cvst(self.env.reset(random_player=False))
-        self.seen_states.append(state)
+        self.seen_states = [state] if self.current_curiosity else None
         update_cnt = 0
         losses = []
         scores = []
