@@ -67,8 +67,9 @@ class RainbowAgent(Agent):
             # Agent saving
             save_interval: int = 8000,  # if <=0 -> no saving
             save_path: str = "rainbow-agent.pth",
-            # Curiosity hyperparameter
-            curiosity_reward: int = None
+            # Curiosity
+            curiosity_reward: int = None,
+            curiosity_decay: float = 1/20000
     ):
         """Initialization.
 
@@ -179,8 +180,10 @@ class RainbowAgent(Agent):
         self.save_path = save_path
 
         # curiosity
-        self.curiosity_reward = np.float64(curiosity_reward)
-        self.seen_states = [] if self.curiosity_reward else None
+        self.current_curiosity = np.float64(curiosity_reward) if curiosity_reward else None
+        self.max_curiosity = np.float64(curiosity_reward) if curiosity_reward else None
+        self.curiosity_decay = np.float64(curiosity_decay) if curiosity_reward else None
+        self.seen_states = [] if self.current_curiosity else None
 
     def _get_dqn_action(self, state: np.ndarray):
         if self.is_test:
@@ -239,12 +242,15 @@ class RainbowAgent(Agent):
         next_state = cvst(next_state, self.env.current_player)
 
         if not self.is_test:
-            # check for existence of the next state and add custom reward if it was never seen before
-            if self.curiosity_reward and next_state not in self.seen_states:
-                self.seen_states.append(next_state)
-                self._add_custom_transition(self.transition + [self.curiosity_reward, next_state, done])
-                return next_state, self.curiosity_reward, done, info
-
+            if self.current_curiosity:
+                if next_state not in self.seen_states:
+                    # check for existence of the next state and set custom reward
+                    # if it was never seen before and curiosity has not decayed too low
+                    reward = max(self.current_curiosity, reward)
+                    self.seen_states.append(next_state)
+                # reduce curiosity after each step
+                self._decrease_curiosity()
+                
             self._add_custom_transition(self.transition + [reward, next_state, done])
 
         return next_state, reward, done, info
@@ -299,6 +305,11 @@ class RainbowAgent(Agent):
                     self.max_epsilon - self.min_epsilon
             ) * self.epsilon_decay
         )
+        
+    def _decrease_curiosity(self):
+        self.current_curiosity = max(
+            0, self.current_curiosity - self.max_curiosity * self.curiosity_decay
+        )
 
     def train(self, num_turns_total: int, plotting_interval: int = 200):
         """Train the agent."""
@@ -348,7 +359,7 @@ class RainbowAgent(Agent):
 
             # if episode ends
             if done:
-                self.seen_states = [] if self.curiosity_reward else None
+                self.seen_states = [] if self.current_curiosity else None
                 state = cvst(self.env.reset(random_player=False))
                 scores.append(max(score_black, score_white))
                 score_black = 0
