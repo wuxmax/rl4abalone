@@ -10,7 +10,7 @@ from agents.rainbow.agent import RainbowAgent
 from agents.rainbow.config import RainbowConfig
 from agents.random_agent import RandomAgent
 from agents.agent import Agent
-from utils import cvst, set_seeds, track_actions
+from utils import cvst, set_seeds
 
 AGENT_FILE_PATHS: List = ["trained-agents/rainbow-agent_1.pth", "random"]
 # AGENT_FILE_PATHS: List = [None]
