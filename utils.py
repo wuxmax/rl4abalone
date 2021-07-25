@@ -43,14 +43,6 @@ def get_atom_distribution_borders() -> (float, float):
     return v_max, -v_max
 
 
-def track_actions(action, last_actions: List, unique_actions: List):
-    last_actions.append(action)
-    if len(last_actions) == 100:
-        unique_actions.append(len(set(last_actions)))
-        last_actions = []
-    return last_actions, unique_actions
-
-
 def print_action_prob_info(action_probs: np.ndarray, action_mask: np.ndarray):
     action_probs_masked = action_probs * action_mask
     num_actions_total = action_mask.shape[0]

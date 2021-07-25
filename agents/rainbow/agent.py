@@ -311,6 +311,8 @@ class RainbowAgent(Agent):
         score_black = 0
         score_white = 0
         last_opposing_player_transition = list()
+        turns_white = 0
+        turns_black = 0
 
         for turn_total_idx in tqdm(range(1, num_turns_total + 1)):
             action = self.select_action(state)
@@ -319,12 +321,12 @@ class RainbowAgent(Agent):
 
             if info["player"] == 0:
                 score_white += reward
-                last_actions_white, unique_actions_white = track_actions(action=action, last_actions=last_actions_white,
-                                                                         unique_actions=unique_actions_white)
+                last_actions_white.append(action)
+                turns_white += 1
             else:
                 score_black += reward
-                last_actions_black, unique_actions_black = track_actions(action=action, last_actions=last_actions_black,
-                                                                         unique_actions=unique_actions_black)
+                last_actions_black.append(action)
+                turns_black += 1
 
             score_black, score_white = self._handle_trigger_states(score_black=score_black, score_white=score_white,
                                                                    reward=reward, info=info,
@@ -349,6 +351,10 @@ class RainbowAgent(Agent):
                 scores.append(max(score_black, score_white))
                 score_black = 0
                 score_white = 0
+                unique_actions_white.append(len(set(last_actions_white))/turns_white)
+                unique_actions_black.append(len(set(last_actions_black))/turns_black)
+                last_actions_white = []
+                last_actions_black = []
 
             # check if it is time to train
             # one full batch, warmup period over, training interval reached

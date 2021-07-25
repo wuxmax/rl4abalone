@@ -45,9 +45,6 @@ def load_agent(path: str, env: AbaloneEnv):
 
 
 def print_game_info(info: Dict, reward: int, score_white: int, score_black: int, unique_actions: List):
-    if unique_actions:
-        print(f"In the last 100 turns {info['player_name']} has made {unique_actions[0]} unique turns")
-
     if str(info['move_type']) == "ejected":
         print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} "
               f"| reward={reward: >4}")
@@ -70,16 +67,13 @@ def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: in
     if info["player"] == 0:
         score_white += reward
         score_black -= reward
-        last_actions_white, unique_actions = track_actions(action=action, last_actions=last_actions_white,
-                                                           unique_actions=[])
+        last_actions_white.append(action)
     else:
         score_black += reward
         score_white -= reward
-        last_actions_black, unique_actions = track_actions(action=action, last_actions=last_actions_black,
-                                                           unique_actions=[])
+        last_actions_black.append(action)
 
-    print_game_info(info=info, reward=reward, score_white=score_white, score_black=score_black,
-                    unique_actions=unique_actions)
+    print_game_info(info=info, reward=reward, score_white=score_white, score_black=score_black)
 
     if enable_gui:
         agent.env.render(fps=1)
@@ -103,6 +97,8 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
         score_black = 0
         score_white = 0
         done = False
+        turns_white = 0
+        turns_black = 0
 
         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
@@ -111,6 +107,11 @@ def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = Fal
                 test_step(agent=agent, state=state, score_white=score_white, score_black=score_black,
                           enable_gui=enable_gui, last_actions_white=last_actions_white,
                           last_actions_black=last_actions_black)
+
+        print(f"In the last game white has made {len(set(last_actions_white))} (ratio:"
+              f"{len(set(last_actions_white)) / turns_white}) and black"
+              f"has made {len(set(last_actions_black))} (ratio:"
+              f"{len(set(last_actions_black)) / turns_black}) unique turns")
 
         spinner.stop()
 
@@ -132,6 +133,8 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     score = [0, 0]
     last_actions_white = []
     last_actions_black = []
+    turns_white = 0
+    turns_black = 0
 
     for episode in range(episodes):
         state = cvst(env.reset(random_player=False))
@@ -142,11 +145,22 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
         while not done:
-            turn_player = agent1 if env.current_player == 0 else agent2
+            if env.current_player == 0:
+                turn_player = agent1
+                turns_white += 1
+            else:
+                turn_player = agent2
+                turns_black += 1
+
             state, score_white, score_black, done, last_actions_white, last_actions_black =\
                 test_step(agent=turn_player, state=state, score_white=score_white, score_black=score_black,
                           enable_gui=enable_gui, last_actions_white=last_actions_white,
                           last_actions_black=last_actions_black)
+
+        print(f"In the last game white has made {len(set(last_actions_white))} (ratio:"
+              f"{len(set(last_actions_white))/turns_white}) and black"
+              f"has made {len(set(last_actions_black))} (ratio:"
+              f"{len(set(last_actions_black))/turns_black}) unique turns")
 
         if score_white > score_black:
             score[0] += 1

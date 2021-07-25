@@ -28,7 +28,7 @@ def _plot(
     plt.title('loss')
     plt.plot(losses)
     plt.subplot(133)
-    plt.title('unique actions in 100 actions')
+    plt.title('unique actions ratio per game')
     plt.plot(unique_actions_white, color="grey")
     plt.plot(unique_actions_black, color="black")
     # axes = plt.gca()
