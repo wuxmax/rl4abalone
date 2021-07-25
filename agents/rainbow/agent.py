@@ -233,7 +233,6 @@ class RainbowAgent(Agent):
                     # if it was never seen before and curiosity has not decayed too low
                     reward = max(self.current_curiosity, reward)
                     self.seen_states.append(next_state)
-                    print(f"curiosity proc with a reward of {self.current_curiosity}")
                 # reduce curiosity after each step
                 self._decrease_curiosity()
                 
