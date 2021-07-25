@@ -132,23 +132,23 @@ class DQN(nn.Module):
 
         if self.feature_conf.distributional_net:
             # set advantage layer
-            self.advantage_hidden_layer = deep_linear_class(hidden_dim, **deep_linear_kwargs)
-            self.advantage_layer = deep_linear_class(hidden_dim, out_dim * atom_size, *deep_linear_kwargs)
+            self.advantage_hidden_layer = deep_linear_class(hidden_dim, hidden_dim, **deep_linear_kwargs)
+            self.advantage_layer = deep_linear_class(hidden_dim, out_dim * atom_size, **deep_linear_kwargs)
 
             # set value layer
-            self.value_hidden_layer = deep_linear_class(hidden_dim, hidden_dim, *deep_linear_kwargs)
-            self.value_layer = deep_linear_class(hidden_dim, atom_size, *deep_linear_kwargs)
+            self.value_hidden_layer = deep_linear_class(hidden_dim, hidden_dim, **deep_linear_kwargs)
+            self.value_layer = deep_linear_class(hidden_dim, atom_size, **deep_linear_kwargs)
 
         else:
             # set advantage layer
-            self.advantage_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim, *deep_linear_kwargs),
+            self.advantage_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim, **deep_linear_kwargs),
                                                  nn.ReLU(),
-                                                 deep_linear_class(hidden_dim, out_dim, *deep_linear_kwargs))
+                                                 deep_linear_class(hidden_dim, out_dim, **deep_linear_kwargs))
 
             # set value layer
-            self.value_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim, *deep_linear_kwargs),
+            self.value_layer = nn.Sequential(deep_linear_class(hidden_dim, hidden_dim, **deep_linear_kwargs),
                                              nn.ReLU(),
-                                             deep_linear_class(hidden_dim, 1, *deep_linear_kwargs))
+                                             deep_linear_class(hidden_dim, 1, **deep_linear_kwargs))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
