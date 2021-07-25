@@ -231,6 +231,7 @@ class RainbowAgent(Agent):
                     # if it was never seen before and curiosity has not decayed too low
                     reward = max(self.current_curiosity, reward)
                     self.seen_states.append(next_state)
+                    print(f"curiosity proc with a reward of {self.current_curiosity}")
                 # reduce curiosity after each step
                 self._decrease_curiosity()
                 
@@ -343,8 +344,8 @@ class RainbowAgent(Agent):
 
             # if episode ends
             if done:
-                self.seen_states = [] if self.current_curiosity else None
                 state = cvst(self.env.reset(random_player=False))
+                self.seen_states = [state] if self.current_curiosity else None
                 scores.append(max(score_black, score_white))
                 score_black = 0
                 score_white = 0
