@@ -71,7 +71,9 @@ class RainbowAgent(Agent):
             save_interval: int = 8000,  # if <=0 -> no saving
             save_path: str = "rainbow-agent.pth",
             # Curiosity
-            curiosity_reward: int = None,
+            use_curiosity: bool = False,
+            max_curiosity_reward: int = 2,
+            min_curiosity_reward: int = 0,
             curiosity_decay: float = 1/20000
     ):
         """Initialization.
@@ -183,10 +185,12 @@ class RainbowAgent(Agent):
         self.save_path = save_path
 
         # curiosity
-        self.current_curiosity = np.float64(curiosity_reward) if curiosity_reward else None
-        self.max_curiosity = np.float64(curiosity_reward) if curiosity_reward else None
-        self.curiosity_decay = np.float64(curiosity_decay) if curiosity_reward else None
-        self.seen_states = [] if self.current_curiosity else None
+        self.use_curiosity = use_curiosity
+        self.current_curiosity = np.float64(max_curiosity_reward) if self.use_curiosity else None
+        self.max_curiosity = np.float64(max_curiosity_reward) if self.use_curiosity else None
+        self.min_curiosity = np.float64(min_curiosity_reward) if self.use_curiosity else None
+        self.curiosity_decay = np.float64(curiosity_decay) if self.use_curiosity else None
+        self.seen_states = [] if self.self.use_curiosity else None
 
     def _get_dqn_action(self, state: np.ndarray):
         if self.is_test:
@@ -227,7 +231,7 @@ class RainbowAgent(Agent):
         next_state = cvst(next_state, self.env.current_player)
 
         if not self.is_test:
-            if self.current_curiosity is not None:
+            if self.use_curiosity and self.current_curiosity > 0:
                 if not np.any(np.all(next_state == self.seen_states, axis=1)):
                     # check for existence of the next state and set custom reward
                     # if it was never seen before and curiosity has not decayed too low
@@ -293,14 +297,16 @@ class RainbowAgent(Agent):
         
     def _decrease_curiosity(self):
         self.current_curiosity = max(
-            0, self.current_curiosity - self.max_curiosity * self.curiosity_decay
+            self.min_curiosity, self.current_curiosity - (
+                self.max_curiosity - self.min_curiosity
+            ) * self.curiosity_decay
         )
 
     def train(self, num_turns_total: int, plotting_interval: int = 200):
         """Train the agent."""
         self.is_test = False
         state = cvst(self.env.reset(random_player=False))
-        self.seen_states = [state] if self.current_curiosity else None
+        self.seen_states = [state] if self.use_curiosity and not self.seen_states else self.seen_states
         update_cnt = 0
         losses = []
         scores = []
