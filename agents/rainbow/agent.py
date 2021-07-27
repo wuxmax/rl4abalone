@@ -190,7 +190,7 @@ class RainbowAgent(Agent):
         self.max_curiosity = np.float64(max_curiosity_reward) if self.use_curiosity else None
         self.min_curiosity = np.float64(min_curiosity_reward) if self.use_curiosity else None
         self.curiosity_decay = np.float64(curiosity_decay) if self.use_curiosity else None
-        self.seen_states = [] if self.self.use_curiosity else None
+        self.seen_states = [] if self.use_curiosity else None
 
     def _get_dqn_action(self, state: np.ndarray):
         if self.is_test:
