@@ -382,6 +382,7 @@ class RainbowAgent(Agent):
             # plotting
             if turn_total_idx % plotting_interval == 0:
                 _plot(turn_total_idx, scores, losses, unique_actions_white, unique_actions_black)
+                print(f"#seen_states: {len(self.seen_states)}, unique #seen_states: {len(np.unique(self.seen_states, axis=0))}, steps: {turn_total_idx}")
 
             # saving
             if self.save_interval > 0:
