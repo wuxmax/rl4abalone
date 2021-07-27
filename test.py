@@ -12,12 +12,18 @@ from agents.random_agent import RandomAgent
 from agents.agent import Agent
 from utils import cvst, set_seeds
 
-AGENT_FILE_PATHS: List = ["trained-agents/rainbow-agent_1.pth", "random"]
+# patch pickel error
+import sys
+from agents.rainbow import config
+sys.modules['config'] = config
+
+# AGENT_FILE_PATHS: List = ["trained-agents/ra_noisy-net_std-init-5_1000000_.pth", "random"]
+AGENT_FILE_PATHS: List = ["trained-agents/ra_noisy-net_std-init-5_1000000_.pth", "trained-agents/ra_noisy-net_std-init-5_1000000_.pth"]
 # AGENT_FILE_PATHS: List = [None]
 # GAMES_PER_BENCHMARK = 100
 GAMES_PER_BENCHMARK = 10
 MAX_TURNS: int = 400
-ENABLE_GUI: bool = False
+ENABLE_GUI: bool = True
 RESULTS_FILE = "results.xlsx"
 RANDOM_SEED = 777
 
