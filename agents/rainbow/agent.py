@@ -232,7 +232,8 @@ class RainbowAgent(Agent):
 
         if not self.is_test:
             if self.use_curiosity and self.current_curiosity > 0:
-                if not np.any(np.all(next_state == self.seen_states, axis=1)):
+                # if not np.any(np.all(next_state == self.seen_states, axis=1)):
+                if next_state not in self.seen_states:
                     # check for existence of the next state and set custom reward
                     # if it was never seen before and curiosity has not decayed too low
                     reward = max(self.current_curiosity, reward)
@@ -306,7 +307,8 @@ class RainbowAgent(Agent):
         """Train the agent."""
         self.is_test = False
         state = cvst(self.env.reset(random_player=False))
-        self.seen_states = [state] if not self.seen_states else self.seen_states
+        if self.use_curiosity:
+            self.seen_states = [state] if not self.seen_states else self.seen_states
         update_cnt = 0
         losses = []
         scores = []
@@ -382,7 +384,9 @@ class RainbowAgent(Agent):
             # plotting
             if turn_total_idx % plotting_interval == 0:
                 _plot(turn_total_idx, scores, losses, unique_actions_white, unique_actions_black)
-                print(f"#seen_states: {len(self.seen_states)}, unique #seen_states: {len(np.unique(self.seen_states, axis=0))}, steps: {turn_total_idx}")
+                if self.use_curiosity:
+                    print(f"#seen_states: {len(self.seen_states)}, #unique seen_states: "
+                          f"{len(np.unique(self.seen_states, axis=0))}, steps: {turn_total_idx}")
 
             # saving
             if self.save_interval > 0:

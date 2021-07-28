@@ -2,15 +2,15 @@ import gym
 import torch
 import numpy as np
 
-from gym_abalone.envs import abalone_env
+from gym_abalone.envs import abalone_env  # important for gym registration
 from gym_abalone.envs.abalone_env import AbaloneEnv
 
 from agents.rainbow.agent import RainbowAgent
 from utils import set_seeds
 
 
-AGENT_FILE_PATH: str = "trained-agents/rainbow-agent_test.pth"
-LOAD_FROM_FILE: bool = False
+AGENT_FILE_PATH: str = "trained-agents/rainbow-agent_test_80.pth"
+LOAD_FROM_FILE: bool = True
 MAX_TURNS: int = 400
 
 
@@ -20,12 +20,14 @@ env = AbaloneEnv(max_turns=MAX_TURNS)
 SEED = 12
 set_seeds(SEED, env)
 
-num_turns_total = 100  # 150000 = ~7h, 214800 ~10h
-save_interval = 1
+num_turns_total = 100
+save_interval = 40
 warmup_period = 0
+training_interval = 1
 
 if not LOAD_FROM_FILE:
-    agent = RainbowAgent(env, warmup_period=warmup_period, save_interval=save_interval, save_path=AGENT_FILE_PATH)
+    agent = RainbowAgent(env, warmup_period=warmup_period, save_interval=save_interval, save_path=AGENT_FILE_PATH,
+                         use_curiosity=True)
 else:
     with open(AGENT_FILE_PATH, "rb") as f:
         agent = torch.load(f, map_location='cpu')  # cpu is correct?
