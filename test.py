@@ -134,8 +134,8 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     env = AbaloneEnv(max_turns=max_turns)
     set_seeds(RANDOM_SEED, env)
 
-    agent_white_name = os.path.basename(white_agent_file_path)
-    agent_black_name = os.path.basename(black_agent_file_path)
+    agent_white_name = os.path.splitext(os.path.basename(white_agent_file_path))[0]
+    agent_black_name = os.path.splitext(os.path.basename(black_agent_file_path))[0]
 
     print(f"Loading white agent: '{agent_white_name}' ...")
     agent_white = load_agent(white_agent_file_path, env)
@@ -182,7 +182,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
         if score_black > score_white:
             winner = 'black'
 
-        game_name = agent_white_name + agent_black_name + str(episode + 1)
+        game_name = '_'.join([agent_white_name, agent_black_name, str(episode + 1)])
 
         result = {
             'game_name': game_name,
@@ -225,6 +225,9 @@ def benchmark_agents(agent_path_list_1: List[str], agent_path_list_2: List[str] 
         agent_matchups = zip(agent_path_list_1, agent_path_list_2)
     else:
         agent_matchups = [(agent, agent_path_list_1[idx + 1]) for idx, agent in enumerate(agent_path_list_1[:-1])]
+
+    # add reversed matchups
+    agent_matchups = agent_matchups + [(agent_2, agent_1) for agent_1, agent_2 in agent_matchups]
 
     for agent_path_1, agent_path_2 in agent_matchups:
         new_results = agent_vs_agent(white_agent_file_path=agent_path_1,
