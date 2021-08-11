@@ -140,7 +140,7 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     print(f"Loading white agent: '{agent_white_name}' ...")
     agent_white = load_agent(white_agent_file_path, env)
     print(f"Done loading!")
-    print(f"Loading white agent: '{agent_black_name}' ...")
+    print(f"Loading black agent: '{agent_black_name}' ...")
     agent_black = load_agent(black_agent_file_path, env)
     print(f"Done loading!")
 
