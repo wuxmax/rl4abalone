@@ -182,7 +182,10 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
         if score_black > score_white:
             winner = 'black'
 
+        game_name = agent_white_name + agent_black_name + str(episode + 1)
+
         result = {
+            'game_name': game_name,
             'agent_white_name': agent_white_name,
             'agent_black_name': agent_black_name,
             'agent_white_score': score_white,

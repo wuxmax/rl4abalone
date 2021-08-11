@@ -322,12 +322,8 @@ class RainbowAgent(Agent):
         turns_white = 0
         turns_black = 0
 
-        # self.env.render(fps=1)
-        self.env.gui = AbaloneGui(self.env.game)
         for turn_total_idx in tqdm(range(1, num_turns_total + 1)):
             action = self.select_action(state)
-            self.env.render(fps=1)
-
             next_state, reward, done, info = self.step(action)
 
             if info["player"] == 0:
