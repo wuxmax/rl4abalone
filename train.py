@@ -9,7 +9,7 @@ from agents.rainbow.agent import RainbowAgent
 from utils import set_seeds
 
 
-AGENT_FILE_PATH: str = "trained-agents/rainbow-agent_test_80.pth"
+AGENT_FILE_PATH: str = "trained-agents/ra_noisy-net_std-init-05.pth"
 LOAD_FROM_FILE: bool = True
 MAX_TURNS: int = 400
 
@@ -21,7 +21,7 @@ SEED = 12
 set_seeds(SEED, env)
 
 num_turns_total = 100
-save_interval = 40
+save_interval = 100000
 warmup_period = 0
 training_interval = 1
 

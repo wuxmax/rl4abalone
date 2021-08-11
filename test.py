@@ -1,3 +1,4 @@
+import os.path
 from typing import Dict, List
 
 import pandas as pd
@@ -23,7 +24,7 @@ AGENT_FILE_PATHS: List = ["trained-agents/ra_noisy-net_std-init-5_1000000_.pth",
 # GAMES_PER_BENCHMARK = 100
 GAMES_PER_BENCHMARK = 10
 MAX_TURNS: int = 400
-ENABLE_GUI: bool = True
+ENABLE_GUI: bool = False
 RESULTS_FILE = "results.xlsx"
 RANDOM_SEED = 777
 
@@ -50,7 +51,7 @@ def load_agent(path: str, env: AbaloneEnv):
     return agent
 
 
-def print_game_info(info: Dict, reward: int, score_white: int, score_black: int, unique_actions: List):
+def print_game_info(info: Dict, reward: int, score_white: int, score_black: int):
     if str(info['move_type']) == "ejected":
         print(f"\n{info['turn']: <4} | {info['player_name']} | {str(info['move_type']): >16} "
               f"| reward={reward: >4}")
@@ -65,7 +66,7 @@ def print_game_info(info: Dict, reward: int, score_white: int, score_black: int,
 
 
 def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: int, enable_gui: bool,
-              last_actions_white: List, last_actions_black: List):
+              last_actions_white: List, last_actions_black: List, ejects_white: int, ejects_black: int):
 
     action = agent.select_action(state)
     next_state, reward, done, info = agent.step(action)
@@ -74,17 +75,21 @@ def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: in
         score_white += reward
         score_black -= reward
         last_actions_white.append(action)
+        if info['move_type'] == 'ejected':
+            ejects_white += 1
     else:
         score_black += reward
         score_white -= reward
         last_actions_black.append(action)
+        if info['move_type'] == 'ejected':
+            ejects_black += 1
 
-    print_game_info(info=info, reward=reward, score_white=score_white, score_black=score_black)
+    # print_game_info(info=info, reward=reward, score_white=score_white, score_black=score_black)
 
     if enable_gui:
         agent.env.render(fps=1)
 
-    return next_state, score_white, score_black, done, last_actions_white, last_actions_black
+    return next_state, score_white, score_black, done, last_actions_white, last_actions_black, ejects_white, ejects_black
 
 
 def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
@@ -129,78 +134,103 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     env = AbaloneEnv(max_turns=max_turns)
     set_seeds(RANDOM_SEED, env)
 
-    print(f"loading .../{white_agent_file_path.split('/')[-1]}")
-    agent1 = load_agent(white_agent_file_path, env)
-    print(f"loading .../{black_agent_file_path.split('/')[-1]}")
-    agent2 = load_agent(black_agent_file_path, env)
-    agent1.is_test = True
-    agent2.is_test = True
+    agent_white_name = os.path.basename(white_agent_file_path)
+    agent_black_name = os.path.basename(black_agent_file_path)
 
-    score = [0, 0]
-    last_actions_white = []
-    last_actions_black = []
-    turns_white = 0
-    turns_black = 0
+    print(f"Loading white agent: '{agent_white_name}' ...")
+    agent_white = load_agent(white_agent_file_path, env)
+    print(f"Done loading!")
+    print(f"Loading white agent: '{agent_black_name}' ...")
+    agent_black = load_agent(black_agent_file_path, env)
+    print(f"Done loading!")
 
+    agent_white.is_test = True
+    agent_black.is_test = True
+
+    results = []
     for episode in range(episodes):
-        state = cvst(env.reset(random_player=False))
+        turns_white = 0
+        turns_black = 0
         score_black = 0
         score_white = 0
+        last_actions_white = []
+        last_actions_black = []
+        ejects_white = 0
+        ejects_black = 0
+
+        state = cvst(env.reset(random_player=False))
         done = False
 
         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
 
         while not done:
             if env.current_player == 0:
-                turn_player = agent1
+                turn_player = agent_white
                 turns_white += 1
             else:
-                turn_player = agent2
+                turn_player = agent_black
                 turns_black += 1
 
-            state, score_white, score_black, done, last_actions_white, last_actions_black =\
-                test_step(agent=turn_player, state=state, score_white=score_white, score_black=score_black,
-                          enable_gui=enable_gui, last_actions_white=last_actions_white,
-                          last_actions_black=last_actions_black)
+            state, score_white, score_black, done, last_actions_white, last_actions_black, ejects_white, ejects_black =\
+                test_step(agent=turn_player, state=state, enable_gui=enable_gui, score_white=score_white, score_black=score_black,
+                          last_actions_white=last_actions_white, last_actions_black=last_actions_black,
+                          ejects_white=ejects_white, ejects_black=ejects_black)
 
-        print(f"In the last game white has made {len(set(last_actions_white))} (ratio:"
-              f"{len(set(last_actions_white))/turns_white}) and black"
-              f"has made {len(set(last_actions_black))} (ratio:"
-              f"{len(set(last_actions_black))/turns_black}) unique turns")
-
+        winner = 'draw'
         if score_white > score_black:
-            score[0] += 1
-        elif score_black > score_white:
-            score[1] += 1
+            winner = 'white'
+        if score_black > score_white:
+            winner = 'black'
+
+        result = {
+            'agent_white_name': agent_white_name,
+            'agent_black_name': agent_black_name,
+            'agent_white_score': score_white,
+            'agent_black_score': score_black,
+            'winner': winner,
+            'num_turns': turns_white + turns_black,
+            'agent_white_score_per_turn': score_white / turns_white,
+            'agent_black_score_per_turn': score_black / turns_black,
+            'agent_white_unique_turn_ratio': len(set(last_actions_white)) / turns_white,
+            'agent_black_unique_turn_ratio': len(set(last_actions_black)) / turns_black,
+            'agent_white_ejects': ejects_white,
+            'agent_black_ejects': ejects_black,
+            'agent_white_ejects_per_turn': ejects_white / turns_white,
+            'agent_black_ejects_per_turn': ejects_black / turns_black,
+        }
+        results.append(result)
+
+        print(f"--- Result of Game {episode + 1}: ---")
+        print(result)
+        print("-----")
+
         spinner.stop()
 
-    del agent1, agent2
+    del agent_white, agent_black
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     env.close()
-    return score[0], score[1]
+    return results
 
 
 def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int = 400, enable_gui: bool = False,
                      results_file: str = None):
-    scores = []
+
+    results = []
 
     for idx, agent_path_1 in enumerate(agent_path_list):
-        score = []
         for idx_, agent_path_2 in enumerate(agent_path_list):
             if idx == idx_:
-                score.append("-")
+                pass
             else:
-                score_agent_1, score_agent_2 = agent_vs_agent(white_agent_file_path=agent_path_1,
+                new_results = agent_vs_agent(white_agent_file_path=agent_path_1,
                                                               black_agent_file_path=agent_path_2,
                                                               max_turns=max_turns, enable_gui=enable_gui,
                                                               episodes=num_games)
-                score.append((score_agent_1, score_agent_2))
-        scores.append(score)
 
-    shortened_agent_path_list = [agent_path.split('/')[-1] for agent_path in agent_path_list]
-    df = pd.DataFrame(scores, columns=shortened_agent_path_list, index=shortened_agent_path_list)
-    df.to_excel(results_file)
+                results += new_results
+                df = pd.DataFrame.from_records(results)
+                df.to_excel(results_file)
 
 
 if __name__ == "__main__":

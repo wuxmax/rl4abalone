@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 import gym
 import torch
+from gym_abalone.game.graphics.abalonegui import AbaloneGui
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
@@ -232,8 +233,7 @@ class RainbowAgent(Agent):
 
         if not self.is_test:
             if self.use_curiosity and self.current_curiosity > 0:
-                # if not np.any(np.all(next_state == self.seen_states, axis=1)):
-                if next_state not in self.seen_states:
+                if not np.any(np.all(next_state == self.seen_states, axis=1)):
                     # check for existence of the next state and set custom reward
                     # if it was never seen before and curiosity has not decayed too low
                     reward = max(self.current_curiosity, reward)
@@ -322,8 +322,11 @@ class RainbowAgent(Agent):
         turns_white = 0
         turns_black = 0
 
+        # self.env.render(fps=1)
+        self.env.gui = AbaloneGui(self.env.game)
         for turn_total_idx in tqdm(range(1, num_turns_total + 1)):
             action = self.select_action(state)
+            self.env.render(fps=1)
 
             next_state, reward, done, info = self.step(action)
 
