@@ -1,5 +1,5 @@
 import os.path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import pandas as pd
 import torch
@@ -92,41 +92,41 @@ def test_step(agent: Agent, state: np.ndarray, score_white: int, score_black: in
     return next_state, score_white, score_black, done, last_actions_white, last_actions_black, ejects_white, ejects_black
 
 
-def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
-    """Test the agent."""
-    env = AbaloneEnv(max_turns=max_turns)
-    set_seeds(RANDOM_SEED, env)
-
-    agent = load_agent(agent_file_path, env)
-    agent.is_test = True
-
-    last_actions_white = []
-    last_actions_black = []
-
-    for episode in range(episodes):
-        state = cvst(env.reset(random_player=False))
-        score_black = 0
-        score_white = 0
-        done = False
-        turns_white = 0
-        turns_black = 0
-
-        spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
-
-        while not done:
-            state, score_white, score_black, done, last_actions_white, last_actions_black =\
-                test_step(agent=agent, state=state, score_white=score_white, score_black=score_black,
-                          enable_gui=enable_gui, last_actions_white=last_actions_white,
-                          last_actions_black=last_actions_black)
-
-        print(f"In the last game white has made {len(set(last_actions_white))} (ratio:"
-              f"{len(set(last_actions_white)) / turns_white}) and black"
-              f"has made {len(set(last_actions_black))} (ratio:"
-              f"{len(set(last_actions_black)) / turns_black}) unique turns")
-
-        spinner.stop()
-
-    env.close()
+# def self_play(agent_file_path: str, max_turns: int = 400, enable_gui: bool = False, episodes: int = 1):
+#     """Test the agent."""
+#     env = AbaloneEnv(max_turns=max_turns)
+#     set_seeds(RANDOM_SEED, env)
+#
+#     agent = load_agent(agent_file_path, env)
+#     agent.is_test = True
+#
+#     last_actions_white = []
+#     last_actions_black = []
+#
+#     for episode in range(episodes):
+#         state = cvst(env.reset(random_player=False))
+#         score_black = 0
+#         score_white = 0
+#         done = False
+#         turns_white = 0
+#         turns_black = 0
+#
+#         spinner.start(text=f"Playing episode {episode + 1}/{episodes}")
+#
+#         while not done:
+#             state, score_white, score_black, done, last_actions_white, last_actions_black =\
+#                 test_step(agent=agent, state=state, score_white=score_white, score_black=score_black,
+#                           enable_gui=enable_gui, last_actions_white=last_actions_white,
+#                           last_actions_black=last_actions_black)
+#
+#         print(f"In the last game white has made {len(set(last_actions_white))} (ratio:"
+#               f"{len(set(last_actions_white)) / turns_white}) and black"
+#               f"has made {len(set(last_actions_black))} (ratio:"
+#               f"{len(set(last_actions_black)) / turns_black}) unique turns")
+#
+#         spinner.stop()
+#
+#     env.close()
 
 
 def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_turns: int = 400,
@@ -213,27 +213,27 @@ def agent_vs_agent(white_agent_file_path: str, black_agent_file_path: str, max_t
     return results
 
 
-def benchmark_agents(agent_path_list: List, num_games: int = 100, max_turns: int = 400, enable_gui: bool = False,
-                     results_file: str = None):
+def benchmark_agents(agent_path_list_1: List[str], agent_path_list_2: List[str] = None,
+                     num_games: int = 100, max_turns: int = 400, results_file: str = None, enable_gui: bool = False):
 
     results = []
 
-    for idx, agent_path_1 in enumerate(agent_path_list):
-        for idx_, agent_path_2 in enumerate(agent_path_list):
-            if idx == idx_:
-                pass
-            else:
-                new_results = agent_vs_agent(white_agent_file_path=agent_path_1,
-                                                              black_agent_file_path=agent_path_2,
-                                                              max_turns=max_turns, enable_gui=enable_gui,
-                                                              episodes=num_games)
+    if agent_path_list_2:
+        agent_matchups = zip(agent_path_list_1, agent_path_list_2)
+    else:
+        agent_matchups = [(agent, agent_path_list_1[idx + 1]) for idx, agent in enumerate(agent_path_list_1[:-1])]
 
-                results += new_results
-                df = pd.DataFrame.from_records(results)
-                df.to_excel(results_file)
+    for agent_path_1, agent_path_2 in agent_matchups:
+        new_results = agent_vs_agent(white_agent_file_path=agent_path_1,
+                                     black_agent_file_path=agent_path_2,
+                                     max_turns=max_turns, episodes=num_games, enable_gui=enable_gui)
+
+        results += new_results
+        df = pd.DataFrame.from_records(results)
+        df.to_excel(results_file)
 
 
 if __name__ == "__main__":
     # self_play(AGENT_FILE_PATHS[0], MAX_TURNS, ENABLE_GUI, EPISODES)
     # agent_vs_agent(AGENT_FILE_PATHS[0], AGENT_FILE_PATHS[1], MAX_TURNS, ENABLE_GUI, GAMES_PER_BENCHMARK)
-    benchmark_agents(AGENT_FILE_PATHS, GAMES_PER_BENCHMARK, MAX_TURNS, ENABLE_GUI, RESULTS_FILE)
+    benchmark_agents(AGENT_FILE_PATHS, None, GAMES_PER_BENCHMARK, MAX_TURNS, RESULTS_FILE, ENABLE_GUI)
