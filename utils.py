@@ -84,12 +84,11 @@ def print_latex_result_table(df_results: pd.DataFrame):
         'agent_black_ejects_per_turn': "# Ejects / # Turns (white)"
     }
 
-    df_results = df_results.copy()
-    df_results = df_results[df_results.keys()]
-    df_results.rename(column_name_mapping)
+    df_results = df_results[column_name_mapping.keys()]
+    df_results = df_results.rename(mapper=column_name_mapping, axis='columns')
 
     print("--- Latex result table ---")
-    print(df_results.to_latex(float_format="{:0.3f}".format))
+    print(df_results.to_latex(float_format="{:0.3f}".format, index=False))
 
 
 
