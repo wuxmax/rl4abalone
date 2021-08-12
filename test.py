@@ -11,7 +11,7 @@ from agents.rainbow.agent import RainbowAgent
 from agents.rainbow.config import RainbowConfig
 from agents.random_agent import RandomAgent
 from agents.agent import Agent
-from utils import cvst, set_seeds
+from utils import cvst, set_seeds, print_latex_result_table
 
 # patch pickel error
 import sys
@@ -21,8 +21,7 @@ sys.modules['config'] = config
 # AGENT_FILE_PATHS: List = ["trained-agents/ra_noisy-net_std-init-5_1000000_.pth", "random"]
 AGENT_FILE_PATHS: List = ["trained-agents/ra_noisy-net_std-init-5_1000000_.pth", "trained-agents/ra_noisy-net_std-init-5_1000000_.pth"]
 # AGENT_FILE_PATHS: List = [None]
-# GAMES_PER_BENCHMARK = 100
-GAMES_PER_BENCHMARK = 10
+GAMES_PER_BENCHMARK = 1
 MAX_TURNS: int = 400
 ENABLE_GUI: bool = False
 RESULTS_FILE = "results.xlsx"
@@ -237,6 +236,8 @@ def benchmark_agents(agent_path_list_1: List[str], agent_path_list_2: List[str] 
         results += new_results
         df = pd.DataFrame.from_records(results)
         df.to_excel(results_file)
+
+    print_latex_result_table(df)
 
 
 if __name__ == "__main__":

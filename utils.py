@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Dict
 
 import random
 import torch
 
+import pandas as pd
 import numpy as np
 from gym_abalone.envs.abalone_env import Reward
 
@@ -63,5 +64,33 @@ def print_action_prob_info(action_probs: np.ndarray, action_mask: np.ndarray):
     action_probs_masked_inverse_min = action_probs[np.nonzero(action_probs_masked_inverse)].min()
     print(f" Min action prob: {action_probs.min()} | Min legal prob {action_probs_masked_min} |"
           f" Min illegal prob {action_probs_masked_inverse_min}")
+
+
+def print_latex_result_table(df_results: pd.DataFrame):
+    column_name_mapping = {
+        'agent_white_name': "White agent",
+        'agent_black_name': "Black agent",
+        'winner': "Winner",
+        'agent_white_score': "Score (white)",
+        'agent_black_score': "Score (black)",
+        'num_turns': "# Turns (total)",
+        'agent_white_score_per_turn': "Score / # Turns (white)",
+        'agent_black_score_per_turn': "Score / # Turns (black)",
+        'agent_white_unique_turn_ratio': "# Unique turns / # Turns (white)",
+        'agent_black_unique_turn_ratio': "# Unique turns / # Turns (black)",
+        'agent_white_ejects': "# Ejects (white)",
+        'agent_black_ejects': "# Ejects (white)",
+        'agent_white_ejects_per_turn': "# Ejects / # Turns (white)",
+        'agent_black_ejects_per_turn': "# Ejects / # Turns (white)"
+    }
+
+    df_results = df_results.copy()
+    df_results = df_results[df_results.keys()]
+    df_results.rename(column_name_mapping)
+
+    print("--- Latex result table ---")
+    print(df_results.to_latex(float_format="{:0.3f}".format))
+
+
 
 
