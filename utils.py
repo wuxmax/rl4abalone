@@ -79,9 +79,7 @@ def print_latex_result_table(df_results: pd.DataFrame):
         'agent_white_unique_turn_ratio': "# Unique turns / # Turns (white)",
         'agent_black_unique_turn_ratio': "# Unique turns / # Turns (black)",
         'agent_white_ejects': "# Ejects (white)",
-        'agent_black_ejects': "# Ejects (white)",
-        'agent_white_ejects_per_turn': "# Ejects / # Turns (white)",
-        'agent_black_ejects_per_turn': "# Ejects / # Turns (white)"
+        'agent_black_ejects': "# Ejects (black)"
     }
 
     df_results = df_results[column_name_mapping.keys()]
