@@ -221,7 +221,7 @@ def benchmark_agents(agent_path_list_1: List[str], agent_path_list_2: List[str] 
     results = []
 
     if agent_path_list_2:
-        agent_matchups = zip(agent_path_list_1, agent_path_list_2)
+        agent_matchups = list(zip(agent_path_list_1, agent_path_list_2))
     else:
         agent_matchups = [(agent, agent_path_list_1[idx + 1]) for idx, agent in enumerate(agent_path_list_1[:-1])]
 
